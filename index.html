@@ -3,21 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Susurros | Versión Final Oficial</title>
-    
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
+    <title>Susurros | Versión Final Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
         :root { --p: #ff0050; --bg: #000; --txt: #fff; --cyan: #25f4ee; --gray: #1a1a1a; }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--txt); font-family: -apple-system, system-ui, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
 
-        /* TOAST NOTIFICACIONES */
+        /* NOTIFICACIONES TOAST */
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 5000; width: 90%; max-width: 400px; pointer-events: none; }
-        .toast { background: #fff; color: #000; padding: 15px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; transform: translateY(-100px); opacity: 0; transition: 0.4s; }
+        .toast { background: rgba(255, 255, 255, 0.95); color: #000; padding: 15px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; transform: translateY(-100px); opacity: 0; transition: 0.4s; }
         .toast.show { transform: translateY(0); opacity: 1; }
 
         /* FEED & CARDS */
@@ -37,24 +32,25 @@
         .circle { width: 50px; height: 50px; background: rgba(255,255,255,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.2); cursor: pointer; }
         .count { font-size: 0.7rem; font-weight: bold; margin-top: 4px; }
 
-        /* HILOS (DRAWER) */
+        /* HILOS / COMENTARIOS */
         .drawer { position: fixed; bottom: 0; width: 100%; height: 75vh; background: #111; z-index: 2000; border-radius: 25px 25px 0 0; transform: translateY(100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); padding: 20px; display: flex; flex-direction: column; }
         .drawer.active { transform: translateY(0); }
-        .replies-list { flex: 1; overflow-y: auto; margin: 15px 0; }
-        .reply-card { background: #1a1a1a; padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid var(--p); }
+        .replies-list { flex: 1; overflow-y: auto; margin: 15px 0; padding-bottom: 20px; }
+        .reply-card { background: var(--gray); padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid var(--p); }
         .child-reply { margin-left: 20px; background: #0c0c0c; border-left: 2px solid #444; margin-top: 8px; padding: 8px; border-radius: 8px; font-size: 0.85rem; }
 
         /* PERFIL */
         #profile-view { position: fixed; inset: 0; background: #000; z-index: 4000; display: none; flex-direction: column; }
-        .profile-header { padding: 60px 20px 20px; border-bottom: 1px solid #222; text-align: center; }
+        .profile-header { padding: 60px 20px 20px; border-bottom: 1px solid #222; text-align: center; position: relative; }
         .google-btn { background: #fff; color: #000; padding: 12px 25px; border-radius: 30px; font-weight: bold; display: inline-flex; align-items: center; gap: 10px; border: none; cursor: pointer; margin-top: 20px; }
         .profile-tabs { display: flex; border-bottom: 1px solid #222; }
         .tab { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #555; cursor: pointer; }
         .tab.active { color: #fff; border-bottom: 2px solid var(--p); }
         .profile-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; }
         .grid-item { aspect-ratio: 1/1; background: #111; overflow: hidden; }
+        .grid-img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* FAB & MODALS */
+        /* MODAL & FAB */
         .fab { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; width: 60px; height: 35px; border-radius: 12px; border: none; font-weight: bold; font-size: 1.6rem; z-index: 100; }
         .modal { position: fixed; inset: 0; background: #000; z-index: 3000; display: none; flex-direction: column; padding: 25px; }
 
@@ -71,14 +67,14 @@
 
 <div id="drawer" class="drawer">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <strong>Hilo de Debate</strong>
+        <strong id="drawer-title">Hilo de Debate</strong>
         <span onclick="cancelReply(); toggleD(false)" style="font-size:2.5rem; color:#888">&times;</span>
     </div>
-    <div id="reply-tag" style="display:none; color:var(--cyan); font-size:0.8rem; margin:10px 0;">Respondiendo... <span onclick="cancelReply()" style="color:var(--p); float:right; cursor:pointer;">CANCELAR</span></div>
+    <div id="reply-tag" style="display:none; color:var(--cyan); font-size:0.8rem; margin:10px 0;">Respondiendo... <span onclick="cancelReply()" style="color:var(--p); float:right;">CANCELAR</span></div>
     <div id="replies-list" class="replies-list"></div>
     <div style="display:flex; gap:10px; padding:10px 0; border-top:1px solid #333;">
-        <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff; outline:none;" placeholder="Tu respuesta...">
-        <button onclick="postReply()" style="color:var(--cyan); background:none; border:none; font-weight:bold;">ENVIAR</button>
+        <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff; outline:none;" placeholder="Escribe tu respuesta...">
+        <button onclick="postReply()" style="color:var(--cyan); background:none; border:none; font-weight:bold;">POST</button>
     </div>
 </div>
 
@@ -86,7 +82,7 @@
     <div class="profile-header">
         <div id="user-info">
             <button class="google-btn" onclick="loginGoogle()">
-                <img src="https://www.google.com/favicon.ico" width="18"> Entrar con Google
+                <img src="https://www.google.com/favicon.ico" width="18"> Iniciar con Google
             </button>
         </div>
         <button onclick="toggleP(false)" style="position:absolute; top:50px; right:20px; background:none; border:none; color:#fff; font-size:1.8rem">&times;</button>
@@ -103,82 +99,70 @@
         <span onclick="toggleM('pub', false)" style="color:#888">Cerrar</span>
         <button onclick="publish()" id="btn-pub" style="background:var(--p); color:#fff; border:none; padding:10px 25px; border-radius:25px; font-weight:bold;">Publicar</button>
     </div>
-    <textarea id="post-text" style="width:100%; height:200px; background:#111; color:#fff; border:1px solid #333; padding:15px; border-radius:15px; font-size:1.1rem; outline:none;" placeholder="Escribe un susurro..."></textarea>
-    <label style="margin-top:20px; background:#111; padding:20px; border-radius:15px; text-align:center; display:block; border:1px dashed #444;">
+    <textarea id="post-text" style="width:100%; height:250px; background:#111; color:#fff; border:1px solid #333; padding:20px; border-radius:20px; font-size:1.1rem; outline:none;" placeholder="¿Qué quieres susurrar?"></textarea>
+    <label style="margin-top:20px; background:#111; padding:30px; border-radius:20px; text-align:center; display:block; border:1px dashed #444;">
         <span id="img-label">📸 Añadir Imagen</span>
-        <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-label').innerText='✅ Imagen Lista'">
+        <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-label').innerText='✅ Imagen Cargada'">
     </label>
 </div>
 
 <script>
     const S_URL = "https://xylesaqkvgvidyfjmfod.supabase.co";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bGVzYXFrdmd2aWR5ZmptZm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzgyMDksImV4cCI6MjA5MTA1NDIwOX0.XjcFRTrUn8yVQ7-_g9kUgV4XnuE4RR4F_NMsxeMbS5E";
-    
-    // 1. INICIAR CLIENTE CON PERSISTENCIA
     const _sb = supabase.createClient(S_URL, S_KEY, {
         auth: { persistSession: true, autoRefreshToken: true }
     });
 
     let activePostId = null, replyingToId = null, lastTap = 0, currentUser = null;
 
-    // 2. INICIALIZACIÓN
+    // 1. INICIALIZAR AUTH & NOTIFICACIONES
     async function init() {
         const { data: { session } } = await _sb.auth.getSession();
         currentUser = session?.user || null;
-        updateUI();
+        updateProfileUI();
 
+        // Escuchar cambios de sesión
         _sb.auth.onAuthStateChange((_event, session) => {
             currentUser = session?.user || null;
-            updateUI();
+            updateProfileUI();
         });
 
-        // Realtime Listener
-        _sb.channel('global').on('postgres_changes', { event: 'INSERT', table: 'notifications' }, p => {
+        // Realtime Notificaciones
+        _sb.channel('updates').on('postgres_changes', { event: 'INSERT', table: 'notifications' }, p => {
             showToast(p.new.message);
         }).subscribe();
 
         loadFeed();
     }
 
-    function showToast(msg) {
+    function showToast(m) {
         const c = document.getElementById('toast-container');
         const t = document.createElement('div'); t.className = 'toast';
-        t.innerHTML = `💬 ${msg}`; c.appendChild(t);
+        t.innerHTML = `💬 ${m}`; c.appendChild(t);
         setTimeout(() => t.classList.add('show'), 100);
         setTimeout(() => { t.classList.remove('show'); setTimeout(()=>t.remove(), 400); }, 4000);
     }
 
-    function updateUI() {
+    function updateProfileUI() {
         const info = document.getElementById('user-info');
         if (currentUser) {
             info.innerHTML = `
-                <img src="${currentUser.user_metadata.avatar_url}" style="width:60px; border-radius:50%; border:2px solid var(--p);">
-                <div style="margin-top:10px; font-weight:bold;">${currentUser.user_metadata.full_name}</div>
-                <button onclick="logout()" style="background:none; border:none; color:var(--p); font-size:0.8rem; margin-top:5px; cursor:pointer;">Cerrar sesión</button>
+                <img src="${currentUser.user_metadata.avatar_url}" style="width:70px; border-radius:50%; border:2px solid var(--p);">
+                <div style="margin-top:10px; font-weight:800;">${currentUser.user_metadata.full_name}</div>
+                <button onclick="logout()" style="color:var(--p); background:none; border:none; font-size:0.8rem; margin-top:5px;">Cerrar sesión</button>
             `;
         }
     }
 
     async function loginGoogle() {
-        // Redirige a la URL actual (GitHub Pages)
-        await _sb.auth.signInWithOAuth({ 
-            provider: 'google', 
-            options: { redirectTo: window.location.href } 
-        });
+        await _sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
     }
 
     async function logout() { await _sb.auth.signOut(); location.reload(); }
 
-    // 3. FEED (SIN FILTRO IS_HIDDEN)
+    // 2. FEED Y DOBLE TAP
     async function loadFeed() {
-        const { data, error } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
-        
-        if (error) {
-            console.error("Error cargando feed:", error.message);
-            document.getElementById('feed').innerHTML = `<div style="padding:50px; text-align:center;">Error: ${error.message}. Revisa RLS.</div>`;
-            return;
-        }
-
+        const { data } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
         document.getElementById('feed').innerHTML = data.map(p => `
             <div class="card" onclick="handleTap(event, '${p.id}')">
                 ${p.image_url ? `<img src="${p.image_url}" class="bg-img" onerror="this.style.display='none'">` : ''}
@@ -212,7 +196,7 @@
         const c = document.getElementById(`l-${id}`); if(c) c.innerText = parseInt(c.innerText)+1;
     }
 
-    // 4. HILOS Y RESPUESTAS
+    // 3. HILOS DE RESPUESTA
     async function openComments(id) { activePostId = id; cancelReply(); toggleD(true); loadReplies(id); }
     async function loadReplies(id) {
         const { data } = await _sb.from('replies').select('*').eq('confession_id', id).order('created_at', { ascending: true });
@@ -233,10 +217,10 @@
         i.value = ''; cancelReply(); loadReplies(activePostId);
     }
 
-    // 5. PUBLICAR E IMÁGENES
+    // 4. PUBLICAR E IMAGEN
     async function publish() {
         const txt = document.getElementById('post-text').value, file = document.getElementById('post-img').files[0], btn = document.getElementById('btn-pub');
-        if(!txt.trim()) return; btn.innerText = "..."; btn.disabled = true;
+        if(!txt.trim()) return; btn.innerText = "Subiendo..."; btn.disabled = true;
         let url = null;
         if(file) {
             const name = `${Date.now()}-${file.name.replace(/[^a-z0-9.]/gi, '_')}`;
@@ -248,7 +232,7 @@
         location.reload();
     }
 
-    // 6. PERFIL Y GUARDADOS
+    // 5. PERFIL Y GUARDADOS
     async function loadProfileData(type) {
         document.getElementById('tab-mine').className = type === 'mine' ? 'tab active' : 'tab';
         document.getElementById('tab-saved').className = type === 'saved' ? 'tab active' : 'tab';
@@ -263,9 +247,10 @@
     }
     function renderGrid(posts) {
         document.getElementById('profile-grid').innerHTML = (posts || []).map(p => `
-            <div class="grid-item">${p.image_url ? `<img src="${p.image_url}" style="width:100%; height:100%; object-fit:cover;">` : `<div style="padding:5px; font-size:0.5rem; color:#555;">${p.text.substring(0,30)}...</div>`}</div>
+            <div class="grid-item">${p.image_url ? `<img src="${p.image_url}" class="grid-img">` : `<div style="padding:10px; font-size:0.5rem; color:#444;">${p.text.substring(0,40)}...</div>`}</div>
         `).join('');
     }
+
     async function savePost(id) {
         if(!currentUser) return alert("Inicia sesión para guardar");
         await _sb.from('bookmarks').insert([{ confession_id: id, user_id: currentUser.id }]);

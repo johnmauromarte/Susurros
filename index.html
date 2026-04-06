@@ -3,238 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Susurros | Historias Anónimas</title>
+    <title>Susurros | Oficial</title>
     
-    <meta name="theme-color" content="#000000">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://via.placeholder.com/192/ff0050/ffffff?text=S">
-
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        :root { --p: #ff0050; --bg: #000; --txt: #fff; }
+        :root { --p: #ff0050; --bg: #000; --txt: #fff; --cyan: #25f4ee; --gray: #1a1a1a; }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--txt); font-family: -apple-system, system-ui, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
 
-        /* FEED TIKTOK */
-        #feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; }
-        .card { 
-            height: 100vh; width: 100vw; scroll-snap-align: start;
-            position: relative; overflow: hidden; background: #000;
-            display: flex; flex-direction: column; justify-content: flex-end;
-        }
+        /* NOTIFICACIONES */
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 5000; width: 90%; max-width: 400px; pointer-events: none; }
+        .toast { background: #fff; color: #000; padding: 15px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; display: flex; align-items: center; gap: 12px; transform: translateY(-100px); opacity: 0; transition: 0.4s; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .toast.show { transform: translateY(0); opacity: 1; }
 
-        .bg-image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; pointer-events: none; opacity: 0.8; }
-        
-        /* Overlay oscuro degradado profundo para lectura */
-        .card::after {
-            content: ''; position: absolute; left: 0; bottom: 0; width: 100%; height: 75%;
-            background: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0) 100%);
-            z-index: 2; pointer-events: none;
-        }
+        /* FEED */
+        #feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
+        .card { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; overflow: hidden; background: #000; display: flex; flex-direction: column; justify-content: center; }
+        .bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.6; }
+        .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent 60%); z-index: 2; pointer-events: none; }
 
-        /* CONTENIDO DE HISTORIA */
-        .content { 
-            position: relative; z-index: 3; 
-            padding: 25px 85px 100px 20px; 
-            width: 100%; max-height: 65vh; text-align: left; 
-        }
-        .city-tag { font-size: 0.8rem; font-weight: 800; color: var(--p); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        
-        .confession-scroll {
-            max-height: 45vh; overflow-y: auto; padding-right: 8px; pointer-events: auto;
-        }
-        /* Ocultar scrollbar pero permitir scroll */
-        .confession-scroll::-webkit-scrollbar { width: 0; background: transparent; }
+        /* UI LAYER */
+        .ui-layer { position: absolute; bottom: 0; left: 0; width: 100%; z-index: 3; padding: 25px 85px 140px 20px; pointer-events: none; }
+        .ui-layer * { pointer-events: auto; }
+        .city-tag { font-size: 0.8rem; font-weight: 800; color: var(--cyan); margin-bottom: 8px; text-transform: uppercase; }
+        .text { font-size: 1.4rem; line-height: 1.4; text-shadow: 0 2px 10px #000; }
 
-        .confession-text { 
-            font-size: 1.15rem; font-weight: 500; line-height: 1.5; color: #fff; 
-            text-shadow: 0 2px 10px rgba(0,0,0,1); word-wrap: break-word; word-break: break-word;
-        }
+        /* SIDEBAR */
+        .side-bar { position: absolute; right: 12px; bottom: 140px; z-index: 10; display: flex; flex-direction: column; gap: 18px; align-items: center; }
+        .circle { width: 50px; height: 50px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); cursor: pointer; }
+        .count { font-size: 0.7rem; font-weight: bold; margin-top: 4px; }
 
-        /* ACCIONES LATERALES */
-        .side-bar { position: absolute; right: 12px; bottom: 130px; z-index: 10; display: flex; flex-direction: column; gap: 20px; align-items: center; }
-        .btn-action { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-        .circle { 
-            width: 52px; height: 52px; background: rgba(255,255,255,0.1); border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; font-size: 1.5rem; 
-            backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.2); transition: 0.1s;
-        }
-        .circle:active { transform: scale(0.8); }
-        .count { font-size: 0.75rem; margin-top: 5px; font-weight: bold; }
+        /* DRAWER (HILOS) */
+        .drawer { position: fixed; bottom: 0; width: 100%; height: 75vh; background: #111; z-index: 2000; border-radius: 25px 25px 0 0; transform: translateY(100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); padding: 20px; display: flex; flex-direction: column; }
+        .drawer.active { transform: translateY(0); }
+        .replies-list { flex: 1; overflow-y: auto; margin: 15px 0; }
+        .reply-card { background: #1a1a1a; padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid var(--p); }
+        .child-reply { margin-left: 20px; background: #0c0c0c; border-left: 2px solid #444; margin-top: 8px; padding: 8px; border-radius: 8px; font-size: 0.85rem; }
 
-        /* MODALES */
-        .full-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; flex-direction: column; padding: 25px; z-index: 1000; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; }
-        textarea { width: 100%; background: #111; color: #fff; border: 1px solid #333; border-radius: 20px; padding: 20px; font-size: 1.1rem; resize: none; margin-bottom: 5px; }
-        textarea:focus { border-color: var(--p); outline: none; }
+        /* PERFIL */
+        #profile-view { position: fixed; inset: 0; background: #000; z-index: 4000; display: none; flex-direction: column; }
+        .profile-header { padding: 60px 20px 20px; text-align: center; border-bottom: 1px solid #222; }
+        .google-btn { background: #fff; color: #000; padding: 12px 25px; border-radius: 30px; font-weight: bold; display: inline-flex; align-items: center; gap: 10px; border: none; cursor: pointer; }
+        .profile-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; padding: 2px; }
+        .grid-item { aspect-ratio: 1/1; background: #111; overflow: hidden; }
 
-        .btn-pub { background: var(--p); color: #fff; border: none; padding: 12px 25px; border-radius: 25px; font-weight: bold; cursor: pointer; }
-        .btn-disabled { background: #333; color: #777; cursor: not-allowed; }
-        
-        .fab { position: fixed; bottom: 35px; left: 50%; transform: translateX(-50%); background: #fff; width: 60px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; z-index: 100; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
-        .fab::before { content: '+'; color: #000; font-size: 2.2rem; font-weight: bold; }
+        /* MODALES Y FAB */
+        .fab { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; width: 60px; height: 35px; border-radius: 12px; border: none; font-weight: bold; font-size: 1.6rem; z-index: 100; cursor: pointer; }
+        .modal { position: fixed; inset: 0; background: #000; z-index: 3000; display: none; flex-direction: column; padding: 25px; }
 
-        /* REPORTE OPCIONES */
-        .report-option { background: #111; padding: 18px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #222; }
-        .report-option.selected { border-color: var(--p); background: rgba(255,0,80,0.1); }
-
-        /* CORAZÓN ANIMADO */
-        .heart-pop { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); color: white; font-size: 8rem; z-index: 100; pointer-events: none; animation: popHeart 0.6s ease-out; opacity: 0; }
-        @keyframes popHeart { 0% { transform: translate(-50%, -50%) scale(0); opacity: 0; } 50% { transform: translate(-50%, -50%) scale(1.4); opacity: 0.9; } 100% { transform: translate(-50%, -50%) scale(1.1); opacity: 0; } }
+        /* ANIMACIÓN CORAZÓN */
+        .heart-pop { position: absolute; font-size: 5rem; color: var(--p); transform: translate(-50%, -50%) scale(0); animation: pop 0.7s ease-out forwards; z-index: 5; pointer-events: none; }
+        @keyframes pop { 0% { scale: 0; opacity: 1; } 40% { scale: 1.3; } 100% { scale: 1; opacity: 0; transform: translate(-50%, -120%); } }
     </style>
 </head>
 <body>
 
-<div id="feed">
-    <div class="card"><div class="content"><div class="confession-text">Cargando historias...</div></div></div>
+<div id="toast-container"></div>
+<div id="feed">Cargando susurros...</div>
+<button class="fab" onclick="toggleM('pub', true)">+</button>
+
+<div id="drawer" class="drawer">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>Hilo de Debate</strong>
+        <span onclick="cancelReply(); toggleD(false)" style="font-size:2.5rem; color:#888; cursor:pointer;">&times;</span>
+    </div>
+    <div id="reply-tag" style="display:none; color:var(--cyan); font-size:0.8rem; margin:10px 0;">Respondiendo... <span onclick="cancelReply()" style="color:var(--p); float:right; cursor:pointer;">X</span></div>
+    <div id="replies-list" class="replies-list"></div>
+    <div style="display:flex; gap:10px; padding:10px 0; border-top:1px solid #333;">
+        <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff; outline:none;" placeholder="Tu respuesta...">
+        <button onclick="postReply()" style="color:var(--cyan); background:none; border:none; font-weight:bold;">ENVIAR</button>
+    </div>
 </div>
 
-<button class="fab" onclick="toggleM('pub', true)"></button>
-
-<div id="modal-pub" class="full-modal">
-    <div class="modal-header">
-        <span onclick="toggleM('pub', false)" style="color:#888; cursor: pointer;">Cerrar</span>
-        <button class="btn-pub" onclick="publishNow()">Publicar</button>
+<div id="profile-view">
+    <div class="profile-header">
+        <div id="user-info">
+            <button class="google-btn" onclick="loginGoogle()">
+                <img src="https://www.google.com/favicon.ico" width="18"> Entrar con Google
+            </button>
+        </div>
+        <button onclick="toggleP(false)" style="position:absolute; top:50px; right:20px; background:none; border:none; color:#fff; font-size:2rem">&times;</button>
     </div>
-    <textarea id="in-text" style="height: 250px;" maxlength="1000" placeholder="Cuenta tu historia anónimamente..." oninput="updatePubCount()"></textarea>
-    <div id="pub-char-val" style="text-align:right; font-size:0.8rem; color:#555; margin-bottom:20px;">0/1000</div>
-    
-    <label style="background: #111; padding: 25px; border-radius: 20px; text-align: center; border: 1px dashed #444; cursor: pointer; display: block; color: #888;">
-        <span id="img-status">📸 Añadir imagen de fondo</span>
-        <input type="file" id="in-img" accept="image/*" style="display:none" onchange="document.getElementById('img-status').innerText='✅ Imagen cargada'">
+    <div id="profile-grid" class="profile-grid"></div>
+</div>
+
+<div id="modal-pub" class="modal">
+    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <span onclick="toggleM('pub', false)" style="color:#888">Cerrar</span>
+        <button onclick="publish()" id="btn-pub" style="background:var(--p); color:#fff; border:none; padding:8px 20px; border-radius:20px; font-weight:bold;">Publicar</button>
+    </div>
+    <textarea id="post-text" style="width:100%; height:150px; background:#111; color:#fff; border:1px solid #333; padding:15px; border-radius:15px; outline:none;" placeholder="Escribe tu susurro..."></textarea>
+    <label style="margin-top:20px; background:#111; padding:20px; border-radius:15px; text-align:center; display:block; border:1px dashed #444;">
+        <span id="img-label">📸 Añadir Imagen</span>
+        <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-label').innerText='✅ Seleccionada'">
     </label>
 </div>
 
-<div id="modal-rep" class="full-modal">
-    <div class="modal-header">
-        <span onclick="toggleM('rep', false)" style="color:#888; cursor: pointer;">Atrás</span>
-        <button id="btn-submit-report" class="btn-pub btn-disabled" onclick="submitFinalReport()" disabled>Enviar</button>
-    </div>
-    <h2 style="margin-bottom:15px; font-size:1.4rem">Reportar contenido</h2>
-    <div id="report-categories">
-        <div class="report-option" onclick="selectCat(this, 'Odio/Violencia')">Odio o Violencia</div>
-        <div class="report-option" onclick="selectCat(this, 'Acoso')">Acoso Personal</div>
-        <div class="report-option" onclick="selectCat(this, 'Contenido Sexual')">Contenido Sexual</div>
-        <div class="report-option" onclick="selectCat(this, 'Spam')">Spam / Estafa</div>
-    </div>
-    <textarea id="report-desc" style="height: 120px; margin-top:15px" placeholder="Describe por qué es ofensivo (mín. 15 caracteres)..." oninput="validateReport()"></textarea>
-</div>
-
 <script>
-    // --- IMPORTANTE: CONFIGURA TUS LLAVES ---
-    const S_URL = "https://xylesaqkvgvidyfjmfod.supabase.co"; 
+    // 1. CONFIGURACIÓN SUPABASE (Blindada)
+    const S_URL = "https://xylesaqkvgvidyfjmfod.supabase.co";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bGVzYXFrdmd2aWR5ZmptZm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzgyMDksImV4cCI6MjA5MTA1NDIwOX0.XjcFRTrUn8yVQ7-_g9kUgV4XnuE4RR4F_NMsxeMbS5E";
-    const _sb = window.supabase.createClient(S_URL, S_KEY);
+    
+    const _sb = supabase.createClient(S_URL, S_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true }
+    });
 
-    let lastC = 0;
-    let postToReport = null;
-    let selectedCategory = null;
+    let activePostId = null, replyingToId = null, lastTap = 0, currentUser = null;
 
-    // CARGAR FEED
-    async function fetchF() {
-        const { data, error } = await _sb.from('confessions').select('*').eq('is_hidden', false).order('created_at', { ascending: false });
-        if (error) return;
-        const fEl = document.getElementById('feed');
-        if (!data || data.length === 0) {
-            fEl.innerHTML = '<div class="card"><div class="content"><div class="confession-text">¡Súper vacío! Sé el primero en contar algo.</div></div></div>';
+    // 2. INICIO
+    async function init() {
+        const { data: { session } } = await _sb.auth.getSession();
+        currentUser = session?.user || null;
+        updateUI();
+
+        _sb.auth.onAuthStateChange((_event, session) => {
+            currentUser = session?.user || null;
+            updateUI();
+        });
+
+        // Escuchar notificaciones reales
+        _sb.channel('global').on('postgres_changes', { event: 'INSERT', table: 'notifications' }, p => {
+            showToast(p.new.message);
+        }).subscribe();
+
+        loadFeed();
+    }
+
+    function showToast(m) {
+        const c = document.getElementById('toast-container');
+        const t = document.createElement('div'); t.className = 'toast';
+        t.innerHTML = `💬 ${m}`; c.appendChild(t);
+        setTimeout(() => t.classList.add('show'), 100);
+        setTimeout(() => { t.classList.remove('show'); setTimeout(()=>t.remove(), 400); }, 4000);
+    }
+
+    function updateUI() {
+        if (currentUser) {
+            document.getElementById('user-info').innerHTML = `
+                <img src="${currentUser.user_metadata.avatar_url}" style="width:60px; border-radius:50%; border:2px solid var(--p);">
+                <div style="margin-top:10px; font-weight:bold;">${currentUser.user_metadata.full_name}</div>
+                <button onclick="_sb.auth.signOut().then(()=>location.reload())" style="color:var(--p); background:none; border:none; margin-top:5px; cursor:pointer;">Salir</button>
+            `;
+        }
+    }
+
+    async function loginGoogle() {
+        await _sb.auth.signInWithOAuth({ 
+            provider: 'google', 
+            options: { redirectTo: window.location.href } 
+        });
+    }
+
+    // 3. CARGA DE FEED (TOTALMENTE LIMPIA)
+    async function loadFeed() {
+        console.log("Pidiendo datos...");
+        // Eliminado filtro is_hidden para evitar Error 400
+        const { data, error } = await _sb
+            .from('confessions')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Error API:", error.message);
+            document.getElementById('feed').innerHTML = `<div style="padding:50px;">Error: ${error.message}</div>`;
             return;
         }
-        fEl.innerHTML = data.map(p => `
-            <div class="card" onclick="handleInt(event, '${p.id}')">
-                ${p.image_url ? `<img src="${p.image_url}" class="bg-image">` : ''}
-                <div class="content">
+
+        document.getElementById('feed').innerHTML = data.map(p => `
+            <div class="card" onclick="handleTap(event, '${p.id}')">
+                ${p.image_url ? `<img src="${p.image_url}" class="bg-img" onerror="this.style.display='none'">` : ''}
+                <div class="ui-layer">
                     <div class="city-tag">📍 ${p.city || 'Anónimo'}</div>
-                    <div class="confession-scroll">
-                        <div class="confession-text">${p.text}</div>
-                    </div>
+                    <div class="text">${p.text}</div>
                 </div>
                 <div class="side-bar">
-                    <div class="btn-action" onclick="sendL('${p.id}')">
-                        <div class="circle">❤️</div>
-                        <span class="count" id="l-${p.id}">${p.likes || 0}</span>
-                    </div>
-                    <div class="btn-action" onclick="viralS('${p.text.replace(/'/g, "\\'").substring(0, 80)}')">
-                        <div class="circle" style="font-size:1.3rem">🔗</div>
-                        <span class="count">Enviar</span>
-                    </div>
-                    <div class="btn-action" onclick="openReport('${p.id}')">
-                        <div class="circle" style="font-size:1rem; opacity:0.3">⚠️</div>
-                    </div>
+                    <div class="action-btn" onclick="doLike('${p.id}')"><div class="circle">❤️</div><span class="count" id="l-${p.id}">${p.likes || 0}</span></div>
+                    <div class="action-btn" onclick="openComments('${p.id}')"><div class="circle">💬</div><span class="count">Hilo</span></div>
+                    <div class="action-btn" onclick="toggleP(true)"><div class="circle">👤</div><span class="count">Perfil</span></div>
                 </div>
             </div>
         `).join('');
     }
 
-    // INTERACCION
-    function handleInt(e, id) {
-        const t = Date.now();
-        if ((t - lastC) < 300) { 
+    // 4. INTERACCIONES
+    function handleTap(e, id) {
+        const now = Date.now();
+        if (now - lastTap < 300) {
             const h = document.createElement('div'); h.className = 'heart-pop'; h.innerHTML = '❤️';
-            e.currentTarget.appendChild(h); setTimeout(() => h.remove(), 600);
-            sendL(id); 
+            h.style.left = e.clientX+'px'; h.style.top = e.clientY+'px';
+            document.body.appendChild(h); setTimeout(()=>h.remove(), 700);
+            doLike(id);
         }
-        lastC = t;
+        lastTap = now;
     }
 
-    // PUBLICAR
-    async function publishNow() {
-        const txt = document.getElementById('in-text').value.trim();
-        const file = document.getElementById('in-img').files[0];
-        if(!txt) return;
-        
+    async function doLike(id) {
+        await _sb.rpc('increment_likes', { post_id: id });
+        const c = document.getElementById(`l-${id}`); if(c) c.innerText = parseInt(c.innerText)+1;
+    }
+
+    // 5. HILOS DE RESPUESTA
+    async function openComments(id) { activePostId = id; cancelReply(); toggleD(true); loadReplies(id); }
+    async function loadReplies(id) {
+        const { data } = await _sb.from('replies').select('*').eq('confession_id', id).order('created_at', { ascending: true });
+        if(!data) return;
+        const parents = data.filter(r => !r.parent_id), children = data.filter(r => r.parent_id);
+        document.getElementById('replies-list').innerHTML = parents.map(p => `
+            <div class="reply-card">
+                <div>${p.text}</div>
+                <span style="color:var(--cyan); font-size:0.7rem; cursor:pointer;" onclick="setReplyTarget('${p.id}')">RESPONDER</span>
+                ${children.filter(c => c.parent_id == p.id).map(c => `<div class="child-reply">${c.text}</div>`).join('')}
+            </div>
+        `).join('');
+    }
+    function setReplyTarget(id) { replyingToId = id; document.getElementById('reply-tag').style.display='block'; document.getElementById('reply-in').focus(); }
+    function cancelReply() { replyingToId = null; document.getElementById('reply-tag').style.display='none'; }
+    async function postReply() {
+        const i = document.getElementById('reply-in'); if(!i.value.trim()) return;
+        await _sb.from('replies').insert([{ confession_id: activePostId, text: i.value, parent_id: replyingToId, user_id: currentUser?.id }]);
+        i.value = ''; cancelReply(); loadReplies(activePostId);
+    }
+
+    // 6. PUBLICAR
+    async function publish() {
+        const txt = document.getElementById('post-text').value, file = document.getElementById('post-img').files[0], btn = document.getElementById('btn-pub');
+        if(!txt.trim()) return; btn.innerText = "..."; btn.disabled = true;
         let url = null;
         if(file) {
-            const n = `${Date.now()}.png`;
-            const { data } = await _sb.storage.from('confession-images').upload(n, file);
-            if(data) url = _sb.storage.from('confession-images').getPublicUrl(n).data.publicUrl;
+            const name = `${Date.now()}-${file.name.replace(/[^a-z0-9.]/gi, '_')}`;
+            await _sb.storage.from('images').upload(name, file);
+            url = _sb.storage.from('images').getPublicUrl(name).data.publicUrl;
         }
-
-        let city = "Algún lugar";
-        try { const r = await fetch('https://ipapi.co/json/'); const g = await r.json(); city = g.city || "Cerca"; } catch(e) {}
-        
-        await _sb.from('confessions').insert([{ text: txt, image_url: url, city: city }]);
-        toggleM('pub', false); fetchF();
+        let city = "Anónimo"; try { const r = await fetch('https://ipapi.co/json/'); const j = await r.json(); city = j.city || "Anónimo"; } catch(e){}
+        await _sb.from('confessions').insert([{ text: txt, image_url: url, city: city, user_id: currentUser?.id }]);
+        location.reload();
     }
 
-    // LIKES
-    async function sendL(id) {
-        await _sb.rpc('increment_likes', { row_id: id });
-        const c = document.getElementById(`l-${id}`);
-        if(c) c.innerText = parseInt(c.innerText) + 1;
-    }
+    function toggleP(s) { document.getElementById('profile-view').style.display = s ? 'flex' : 'none'; }
+    function toggleM(i, s) { document.getElementById(`modal-${i}`).style.display = s ? 'flex' : 'none'; }
+    function toggleD(s) { document.getElementById('drawer').classList.toggle('active', s); }
 
-    // REPORTE LÓGICA
-    function openReport(id) { postToReport = id; toggleM('rep', true); }
-    function selectCat(el, cat) { 
-        document.querySelectorAll('.report-option').forEach(opt => opt.classList.remove('selected'));
-        el.classList.add('selected'); selectedCategory = cat; validateReport(); 
-    }
-    function validateReport() {
-        const desc = document.getElementById('report-desc').value.trim();
-        const btn = document.getElementById('btn-submit-report');
-        btn.disabled = !(selectedCategory && desc.length >= 15);
-        btn.classList.toggle('btn-disabled', btn.disabled);
-    }
-    async function submitFinalReport() {
-        const desc = document.getElementById('report-desc').value.trim();
-        await _sb.from('reports').insert([{ confession_id: postToReport, reason: `[${selectedCategory}] ${desc}` }]);
-        alert("Contenido reportado. La comunidad lo ocultará tras 10 reportes."); 
-        toggleM('rep', false); fetchF();
-    }
-
-    // VIRALIDAD
-    async function viralS(t) {
-        const d = { title: 'Susurros', text: `Escucha esto: "${t}..."`, url: window.location.href };
-        if (navigator.share) await navigator.share(d);
-        else alert("¡Link copiado!");
-    }
-
-    function updatePubCount() { document.getElementById('pub-char-val').innerText = `${document.getElementById('in-text').value.length}/1000`; }
-    function toggleM(type, s) { document.getElementById(`modal-${type}`).style.display = s ? 'flex' : 'none'; }
-
-    fetchF();
+    init();
 </script>
 </body>
 </html>

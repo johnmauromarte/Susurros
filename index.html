@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Susurros | App Oficial</title>
+    <title>Susurros | Versión Final Oficial</title>
     
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,41 +15,47 @@
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--txt); font-family: -apple-system, system-ui, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
 
-        /* NOTIFICACIONES TOAST */
+        /* TOAST NOTIFICACIONES */
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 5000; width: 90%; max-width: 400px; pointer-events: none; }
-        .toast { background: #fff; color: #000; padding: 15px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; display: flex; align-items: center; gap: 12px; transform: translateY(-100px); opacity: 0; transition: 0.4s; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .toast { background: #fff; color: #000; padding: 15px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 12px; transform: translateY(-100px); opacity: 0; transition: 0.4s; }
         .toast.show { transform: translateY(0); opacity: 1; }
 
-        /* FEED Y CARTAS */
-        #feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
-        #feed::-webkit-scrollbar { display: none; }
-        .card { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; overflow: hidden; background: #000; display: flex; flex-direction: column; justify-content: center; }
+        /* FEED & CARDS */
+        #feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
+        .card { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; overflow: hidden; background: #000; }
         .bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.6; }
-        .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent 60%); z-index: 2; pointer-events: none; }
+        .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.95) 5%, transparent 50%); z-index: 2; pointer-events: none; }
 
-        /* CAPA DE TEXTO */
+        /* UI LAYER */
         .ui-layer { position: absolute; bottom: 0; left: 0; width: 100%; z-index: 3; padding: 25px 85px 140px 20px; pointer-events: none; }
         .ui-layer * { pointer-events: auto; }
         .city-tag { font-size: 0.8rem; font-weight: 800; color: var(--cyan); margin-bottom: 8px; text-transform: uppercase; }
-        .text { font-size: 1.4rem; line-height: 1.4; text-shadow: 0 2px 10px #000; font-weight: bold; }
+        .text { font-size: 1.3rem; line-height: 1.4; text-shadow: 0 2px 10px #000; font-weight: 500; }
 
-        /* BARRA LATERAL DE ACCIONES */
+        /* SIDEBAR */
         .side-bar { position: absolute; right: 12px; bottom: 140px; z-index: 10; display: flex; flex-direction: column; gap: 18px; align-items: center; }
-        .circle { width: 50px; height: 50px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2); cursor: pointer; }
-        .count { font-size: 0.7rem; font-weight: bold; margin-top: 4px; color: #fff; }
+        .circle { width: 50px; height: 50px; background: rgba(255,255,255,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.2); cursor: pointer; }
+        .count { font-size: 0.7rem; font-weight: bold; margin-top: 4px; }
 
-        /* HILOS DE RESPUESTA (DRAWER) */
+        /* HILOS (DRAWER) */
         .drawer { position: fixed; bottom: 0; width: 100%; height: 75vh; background: #111; z-index: 2000; border-radius: 25px 25px 0 0; transform: translateY(100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); padding: 20px; display: flex; flex-direction: column; }
         .drawer.active { transform: translateY(0); }
         .replies-list { flex: 1; overflow-y: auto; margin: 15px 0; }
         .reply-card { background: #1a1a1a; padding: 12px; border-radius: 12px; margin-bottom: 10px; border-left: 3px solid var(--p); }
+        .child-reply { margin-left: 20px; background: #0c0c0c; border-left: 2px solid #444; margin-top: 8px; padding: 8px; border-radius: 8px; font-size: 0.85rem; }
 
-        /* PERFIL Y MODALES */
+        /* PERFIL */
         #profile-view { position: fixed; inset: 0; background: #000; z-index: 4000; display: none; flex-direction: column; }
-        .profile-header { padding: 60px 20px 20px; text-align: center; border-bottom: 1px solid #222; }
-        .google-btn { background: #fff; color: #000; padding: 12px 25px; border-radius: 30px; font-weight: bold; display: inline-flex; align-items: center; gap: 10px; border: none; cursor: pointer; }
-        
-        .fab { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; width: 60px; height: 35px; border-radius: 12px; border: none; font-weight: bold; font-size: 1.6rem; z-index: 100; cursor: pointer; }
+        .profile-header { padding: 60px 20px 20px; border-bottom: 1px solid #222; text-align: center; }
+        .google-btn { background: #fff; color: #000; padding: 12px 25px; border-radius: 30px; font-weight: bold; display: inline-flex; align-items: center; gap: 10px; border: none; cursor: pointer; margin-top: 20px; }
+        .profile-tabs { display: flex; border-bottom: 1px solid #222; }
+        .tab { flex: 1; padding: 15px; text-align: center; font-weight: bold; color: #555; cursor: pointer; }
+        .tab.active { color: #fff; border-bottom: 2px solid var(--p); }
+        .profile-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; }
+        .grid-item { aspect-ratio: 1/1; background: #111; overflow: hidden; }
+
+        /* FAB & MODALS */
+        .fab { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; width: 60px; height: 35px; border-radius: 12px; border: none; font-weight: bold; font-size: 1.6rem; z-index: 100; }
         .modal { position: fixed; inset: 0; background: #000; z-index: 3000; display: none; flex-direction: column; padding: 25px; }
 
         /* ANIMACIÓN CORAZÓN */
@@ -60,17 +66,18 @@
 <body>
 
 <div id="toast-container"></div>
-<div id="feed">Cargando...</div>
+<div id="feed"></div>
 <button class="fab" onclick="toggleM('pub', true)">+</button>
 
 <div id="drawer" class="drawer">
     <div style="display:flex; justify-content:space-between; align-items:center;">
         <strong>Hilo de Debate</strong>
-        <span onclick="toggleD(false)" style="font-size:2.5rem; color:#888; cursor:pointer;">&times;</span>
+        <span onclick="cancelReply(); toggleD(false)" style="font-size:2.5rem; color:#888">&times;</span>
     </div>
+    <div id="reply-tag" style="display:none; color:var(--cyan); font-size:0.8rem; margin:10px 0;">Respondiendo... <span onclick="cancelReply()" style="color:var(--p); float:right; cursor:pointer;">CANCELAR</span></div>
     <div id="replies-list" class="replies-list"></div>
-    <div style="display:flex; gap:10px; padding:10px 0;">
-        <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff;" placeholder="Escribe algo...">
+    <div style="display:flex; gap:10px; padding:10px 0; border-top:1px solid #333;">
+        <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff; outline:none;" placeholder="Tu respuesta...">
         <button onclick="postReply()" style="color:var(--cyan); background:none; border:none; font-weight:bold;">ENVIAR</button>
     </div>
 </div>
@@ -78,41 +85,54 @@
 <div id="profile-view">
     <div class="profile-header">
         <div id="user-info">
-            <button class="google-btn" onclick="loginGoogle()">Entrar con Google</button>
+            <button class="google-btn" onclick="loginGoogle()">
+                <img src="https://www.google.com/favicon.ico" width="18"> Entrar con Google
+            </button>
         </div>
-        <button onclick="toggleP(false)" style="margin-top:20px; color:#888; background:none; border:none;">Cerrar</button>
+        <button onclick="toggleP(false)" style="position:absolute; top:50px; right:20px; background:none; border:none; color:#fff; font-size:1.8rem">&times;</button>
     </div>
+    <div class="profile-tabs">
+        <div class="tab active" id="tab-mine" onclick="loadProfileData('mine')">MIS POSTS</div>
+        <div class="tab" id="tab-saved" onclick="loadProfileData('saved')">GUARDADOS</div>
+    </div>
+    <div id="profile-grid" class="profile-grid"></div>
 </div>
 
 <div id="modal-pub" class="modal">
-    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:25px; align-items:center;">
         <span onclick="toggleM('pub', false)" style="color:#888">Cerrar</span>
-        <button onclick="publish()" id="btn-pub" style="background:var(--p); color:#fff; border:none; padding:8px 20px; border-radius:20px; font-weight:bold;">Publicar</button>
+        <button onclick="publish()" id="btn-pub" style="background:var(--p); color:#fff; border:none; padding:10px 25px; border-radius:25px; font-weight:bold;">Publicar</button>
     </div>
-    <textarea id="post-text" style="width:100%; height:150px; background:#111; color:#fff; border:1px solid #333; padding:15px; border-radius:15px;" placeholder="¿Qué quieres decir?"></textarea>
-    <input type="file" id="post-img" style="margin-top:20px; color:#888;">
+    <textarea id="post-text" style="width:100%; height:200px; background:#111; color:#fff; border:1px solid #333; padding:15px; border-radius:15px; font-size:1.1rem; outline:none;" placeholder="Escribe un susurro..."></textarea>
+    <label style="margin-top:20px; background:#111; padding:20px; border-radius:15px; text-align:center; display:block; border:1px dashed #444;">
+        <span id="img-label">📸 Añadir Imagen</span>
+        <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-label').innerText='✅ Imagen Lista'">
+    </label>
 </div>
 
 <script>
-    // CONFIGURACIÓN (Limpia y sin filtros)
     const S_URL = "https://xylesaqkvgvidyfjmfod.supabase.co";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bGVzYXFrdmd2aWR5ZmptZm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzgyMDksImV4cCI6MjA5MTA1NDIwOX0.XjcFRTrUn8yVQ7-_g9kUgV4XnuE4RR4F_NMsxeMbS5E";
     
-    const _sb = supabase.createClient(S_URL, S_KEY, { auth: { persistSession: true } });
+    // 1. INICIAR CLIENTE CON PERSISTENCIA
+    const _sb = supabase.createClient(S_URL, S_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true }
+    });
 
-    let activePostId = null, lastTap = 0, currentUser = null;
+    let activePostId = null, replyingToId = null, lastTap = 0, currentUser = null;
 
+    // 2. INICIALIZACIÓN
     async function init() {
         const { data: { session } } = await _sb.auth.getSession();
         currentUser = session?.user || null;
         updateUI();
 
-        _sb.auth.onAuthStateChange((_e, session) => {
+        _sb.auth.onAuthStateChange((_event, session) => {
             currentUser = session?.user || null;
             updateUI();
         });
 
-        // Notificaciones en vivo
+        // Realtime Listener
         _sb.channel('global').on('postgres_changes', { event: 'INSERT', table: 'notifications' }, p => {
             showToast(p.new.message);
         }).subscribe();
@@ -120,42 +140,48 @@
         loadFeed();
     }
 
-    function showToast(m) {
+    function showToast(msg) {
         const c = document.getElementById('toast-container');
         const t = document.createElement('div'); t.className = 'toast';
-        t.innerHTML = `💬 ${m}`; c.appendChild(t);
+        t.innerHTML = `💬 ${msg}`; c.appendChild(t);
         setTimeout(() => t.classList.add('show'), 100);
         setTimeout(() => { t.classList.remove('show'); setTimeout(()=>t.remove(), 400); }, 4000);
     }
 
     function updateUI() {
+        const info = document.getElementById('user-info');
         if (currentUser) {
-            document.getElementById('user-info').innerHTML = `
+            info.innerHTML = `
                 <img src="${currentUser.user_metadata.avatar_url}" style="width:60px; border-radius:50%; border:2px solid var(--p);">
-                <div style="margin-top:10px;">${currentUser.user_metadata.full_name}</div>
-                <button onclick="_sb.auth.signOut().then(()=>location.reload())" style="color:var(--p); background:none; border:none; font-size:0.8rem;">Salir</button>
+                <div style="margin-top:10px; font-weight:bold;">${currentUser.user_metadata.full_name}</div>
+                <button onclick="logout()" style="background:none; border:none; color:var(--p); font-size:0.8rem; margin-top:5px; cursor:pointer;">Cerrar sesión</button>
             `;
         }
     }
 
     async function loginGoogle() {
-        await _sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+        // Redirige a la URL actual (GitHub Pages)
+        await _sb.auth.signInWithOAuth({ 
+            provider: 'google', 
+            options: { redirectTo: window.location.href } 
+        });
     }
 
-    // CARGA DE FEED (SIN FILTRO IS_HIDDEN)
-    async function loadFeed() {
-        console.log("Cargando feed limpio...");
-        const { data, error } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
+    async function logout() { await _sb.auth.signOut(); location.reload(); }
 
+    // 3. FEED (SIN FILTRO IS_HIDDEN)
+    async function loadFeed() {
+        const { data, error } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
+        
         if (error) {
-            console.error("Error API:", error.message);
-            document.getElementById('feed').innerHTML = `<div style="padding:50px;">Error: ${error.message}</div>`;
+            console.error("Error cargando feed:", error.message);
+            document.getElementById('feed').innerHTML = `<div style="padding:50px; text-align:center;">Error: ${error.message}. Revisa RLS.</div>`;
             return;
         }
 
         document.getElementById('feed').innerHTML = data.map(p => `
             <div class="card" onclick="handleTap(event, '${p.id}')">
-                ${p.image_url ? `<img src="${p.image_url}" class="bg-img">` : ''}
+                ${p.image_url ? `<img src="${p.image_url}" class="bg-img" onerror="this.style.display='none'">` : ''}
                 <div class="ui-layer">
                     <div class="city-tag">📍 ${p.city || 'Anónimo'}</div>
                     <div class="text">${p.text}</div>
@@ -163,6 +189,7 @@
                 <div class="side-bar">
                     <div class="action-btn" onclick="doLike('${p.id}')"><div class="circle">❤️</div><span class="count" id="l-${p.id}">${p.likes || 0}</span></div>
                     <div class="action-btn" onclick="openComments('${p.id}')"><div class="circle">💬</div><span class="count">Hilo</span></div>
+                    <div class="action-btn" onclick="savePost('${p.id}')"><div class="circle">🔖</div><span class="count">Guardar</span></div>
                     <div class="action-btn" onclick="toggleP(true)"><div class="circle">👤</div><span class="count">Perfil</span></div>
                 </div>
             </div>
@@ -185,20 +212,28 @@
         const c = document.getElementById(`l-${id}`); if(c) c.innerText = parseInt(c.innerText)+1;
     }
 
-    async function openComments(id) { activePostId = id; toggleD(true); loadReplies(id); }
+    // 4. HILOS Y RESPUESTAS
+    async function openComments(id) { activePostId = id; cancelReply(); toggleD(true); loadReplies(id); }
     async function loadReplies(id) {
         const { data } = await _sb.from('replies').select('*').eq('confession_id', id).order('created_at', { ascending: true });
-        document.getElementById('replies-list').innerHTML = data.map(r => `
-            <div class="reply-card">${r.text}</div>
+        const parents = data.filter(r => !r.parent_id), children = data.filter(r => r.parent_id);
+        document.getElementById('replies-list').innerHTML = parents.map(p => `
+            <div class="reply-card">
+                <div>${p.text}</div>
+                <span style="color:var(--cyan); font-size:0.7rem; font-weight:bold; cursor:pointer;" onclick="setReplyTarget('${p.id}')">RESPONDER</span>
+                ${children.filter(c => c.parent_id == p.id).map(c => `<div class="child-reply">${c.text}</div>`).join('')}
+            </div>
         `).join('');
     }
-
+    function setReplyTarget(id) { replyingToId = id; document.getElementById('reply-tag').style.display='block'; document.getElementById('reply-in').focus(); }
+    function cancelReply() { replyingToId = null; document.getElementById('reply-tag').style.display='none'; }
     async function postReply() {
         const i = document.getElementById('reply-in'); if(!i.value.trim()) return;
-        await _sb.from('replies').insert([{ confession_id: activePostId, text: i.value, user_id: currentUser?.id }]);
-        i.value = ''; loadReplies(activePostId);
+        await _sb.from('replies').insert([{ confession_id: activePostId, text: i.value, parent_id: replyingToId, user_id: currentUser?.id }]);
+        i.value = ''; cancelReply(); loadReplies(activePostId);
     }
 
+    // 5. PUBLICAR E IMÁGENES
     async function publish() {
         const txt = document.getElementById('post-text').value, file = document.getElementById('post-img').files[0], btn = document.getElementById('btn-pub');
         if(!txt.trim()) return; btn.innerText = "..."; btn.disabled = true;
@@ -208,11 +243,36 @@
             await _sb.storage.from('images').upload(name, file);
             url = _sb.storage.from('images').getPublicUrl(name).data.publicUrl;
         }
-        await _sb.from('confessions').insert([{ text: txt, image_url: url, city: "Anónimo", user_id: currentUser?.id }]);
+        let city = "Anónimo"; try { const r = await fetch('https://ipapi.co/json/'); const j = await r.json(); city = j.city || "Anónimo"; } catch(e){}
+        await _sb.from('confessions').insert([{ text: txt, image_url: url, city: city, user_id: currentUser?.id }]);
         location.reload();
     }
 
-    function toggleP(s) { document.getElementById('profile-view').style.display = s ? 'flex' : 'none'; }
+    // 6. PERFIL Y GUARDADOS
+    async function loadProfileData(type) {
+        document.getElementById('tab-mine').className = type === 'mine' ? 'tab active' : 'tab';
+        document.getElementById('tab-saved').className = type === 'saved' ? 'tab active' : 'tab';
+        const grid = document.getElementById('profile-grid'); grid.innerHTML = '...';
+        if(type === 'mine') {
+            const { data } = await _sb.from('confessions').select('*').eq('user_id', currentUser?.id).order('created_at', { ascending: false });
+            renderGrid(data);
+        } else {
+            const { data } = await _sb.from('bookmarks').select('confessions(*)').eq('user_id', currentUser?.id);
+            renderGrid(data ? data.map(b => b.confessions) : []);
+        }
+    }
+    function renderGrid(posts) {
+        document.getElementById('profile-grid').innerHTML = (posts || []).map(p => `
+            <div class="grid-item">${p.image_url ? `<img src="${p.image_url}" style="width:100%; height:100%; object-fit:cover;">` : `<div style="padding:5px; font-size:0.5rem; color:#555;">${p.text.substring(0,30)}...</div>`}</div>
+        `).join('');
+    }
+    async function savePost(id) {
+        if(!currentUser) return alert("Inicia sesión para guardar");
+        await _sb.from('bookmarks').insert([{ confession_id: id, user_id: currentUser.id }]);
+        alert("Guardado 🔖");
+    }
+
+    function toggleP(s) { document.getElementById('profile-view').style.display = s ? 'flex' : 'none'; if(s && currentUser) loadProfileData('mine'); }
     function toggleM(i, s) { document.getElementById(`modal-${i}`).style.display = s ? 'flex' : 'none'; }
     function toggleD(s) { document.getElementById('drawer').classList.toggle('active', s); }
 

@@ -14,7 +14,7 @@
         #feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
         #feed::-webkit-scrollbar { display: none; }
         .card { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; overflow: hidden; background: #050505; display: flex; align-items: center; justify-content: center; }
-        .bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.8; }
+        .bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.8; display: block; }
         .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent 60%); z-index: 2; pointer-events: none; }
 
         /* UI LAYER */
@@ -108,30 +108,16 @@
         currentUser = session?.user || null;
         document.getElementById('alias-input').value = myAlias;
         updateUserUI();
-
-        document.getElementById('alias-input').onchange = (e) => {
-            myAlias = e.target.value;
-            localStorage.setItem('myAlias', myAlias);
-        };
-
         loadFeed();
-    }
-
-    function updateUserUI() {
-        if(currentUser) {
-            const avatar = currentUser.user_metadata.avatar_url;
-            if(avatar) document.getElementById('avatar-circle').innerHTML = `<img src="${avatar}" style="width:100%; height:100%; border-radius:50%;">`;
-            document.getElementById('g-btn').innerHTML = "Cerrar Sesión";
-            document.getElementById('g-btn').onclick = () => _sb.auth.signOut().then(()=>location.reload());
-        }
     }
 
     async function loadFeed() {
         const { data, error } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
         if(error) return;
+        
         document.getElementById('feed').innerHTML = data.map(p => `
             <div class="card" ondblclick="handleDoubleTap(event, '${p.id}')">
-                ${p.image_url ? `<img src="${p.image_url}" class="bg-img" onerror="this.style.display='none'">` : ''}
+                ${p.image_url ? `<img src="${p.image_url}" class="bg-img" style="opacity:1 !important;" onerror="this.style.display='none'">` : ''}
                 <div class="ui-layer">
                     <div class="city-tag">📍 ${p.city || 'Anónimo'}</div>
                     <div class="text">${p.text}</div>
@@ -153,24 +139,30 @@
 
         if(!txt.trim()) return alert("Escribe un mensaje");
         
-        btn.innerText = "Procesando...";
+        btn.innerText = "Subiendo...";
         btn.disabled = true;
 
-        let finalUrl = null;
-
         try {
-            // 1. Subir al Storage
+            let finalUrl = null;
+
             if(file) {
-                const fileName = Date.now() + "_" + file.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
-                const { data: upData, error: upError } = await _sb.storage.from('images').upload(fileName, file);
+                // Generar nombre limpio
+                const ext = file.name.split('.').pop();
+                const fileName = `img_${Date.now()}.${ext}`;
+                
+                // 1. Subir al Storage
+                const { data: upData, error: upError } = await _sb.storage
+                    .from('images') 
+                    .upload(fileName, file);
 
-                if (upError) throw new Error("ERROR STORAGE: " + upError.message);
+                if (upError) throw new Error("Error en Almacenamiento: " + upError.message);
 
-                const { data } = _sb.storage.from('images').getPublicUrl(fileName);
-                finalUrl = data.publicUrl;
+                // 2. Obtener URL
+                const { data: urlRes } = _sb.storage.from('images').getPublicUrl(fileName);
+                finalUrl = urlRes.publicUrl;
             }
 
-            // 2. Insertar en Tabla (sin llamar a la ciudad para evitar cuellos de botella)
+            // 3. Guardar en Base de Datos
             const { error: insError } = await _sb.from('confessions').insert([{ 
                 text: txt, 
                 image_url: finalUrl, 
@@ -178,13 +170,13 @@
                 city: "Local"
             }]);
 
-            if (insError) throw new Error("ERROR TABLA: " + insError.message);
+            if (insError) throw new Error("Error en la Tabla: " + insError.message);
 
-            alert("¡Subido con éxito!");
+            alert("¡Publicado!");
             location.reload();
 
         } catch (err) {
-            alert(err.message);
+            alert("⚠️ " + err.message);
             btn.disabled = false;
             btn.innerText = "Publicar";
         }
@@ -255,6 +247,7 @@
     function toggleM(i, s) { document.getElementById(`modal-${i}`).style.display = s ? 'flex' : 'none'; }
     function toggleP(s) { document.getElementById('profile-view').style.display = s ? 'flex' : 'none'; if(s) loadProfileData(); }
     async function loginGoogle() { await _sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } }); }
+    function updateUserUI() { if(currentUser) document.getElementById('g-btn').innerText = "Cerrar Sesión"; }
 
     init();
 </script>

@@ -41,7 +41,6 @@
         .drawer { position: fixed; bottom: 0; width: 100%; height: 75vh; background: #111; z-index: 5000; border-radius: 25px 25px 0 0; transform: translateY(100%); transition: 0.3s; padding: 20px; display: flex; flex-direction: column; }
         .drawer.active { transform: translateY(0); }
 
-        /* Modal de lectura para el perfil */
         #read-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 6000; display: none; align-items: center; justify-content: center; padding: 20px; }
         .read-content { background: #111; border-radius: 20px; padding: 25px; width: 100%; max-width: 400px; border: 1px solid #333; }
         
@@ -73,7 +72,7 @@
         <strong>Debate infinito</strong>
         <span onclick="toggleD(false)" style="font-size:2rem; color:#888; cursor:pointer;">&times;</span>
     </div>
-    <div id="replies-list" style="flex:1; overflow-y:auto; padding-right: 5px;"></div>
+    <div id="replies-list" style="flex:1; overflow-y:auto; padding-right: 5px; display:flex; flex-direction:column; gap:10px;"></div>
     <div style="display:flex; gap:10px; padding:15px 0; border-top: 1px solid #222;">
         <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff;" placeholder="Añadir a este hilo...">
         <button onclick="postReply()" style="color:var(--cyan); background:none; border:none; font-weight:bold;">OK</button>
@@ -122,6 +121,13 @@
             updateUserUI();
         });
 
+        // ACTIVAR REALTIME PARA HILOS INFINITOS
+        _sb.channel('replies_realtime').on('postgres_changes', { event: 'INSERT', table: 'replies' }, payload => {
+            if(payload.new.confession_id === activePostId) {
+                renderSingleReply(payload.new);
+            }
+        }).subscribe();
+
         updateUserUI();
         loadFeed();
     }
@@ -151,7 +157,7 @@
             <div class="card" ondblclick="handleDoubleTap(event, '${p.id}')">
                 ${p.image_url ? `<img src="${p.image_url}" class="bg-img" onerror="this.style.display='none'">` : ''}
                 <div class="ui-layer">
-                    <div class="city-tag">📍 ${p.city || 'Local'}</div>
+                    <div class="city-tag">📍 Dominican Republic</div>
                     <div class="author-tag">@${p.author_alias || 'Anon'}</div>
                     <div class="text">${p.text}</div>
                 </div>
@@ -170,25 +176,20 @@
         const txt = document.getElementById('post-text').value, file = document.getElementById('post-img').files[0];
         const btn = document.getElementById('btn-pub');
         if(!txt.trim()) return;
-        
         btn.innerText = "Subiendo..."; btn.disabled = true;
         let url = null;
-
         try {
             if(file) {
                 const name = `f_${Date.now()}.png`;
                 await _sb.storage.from('images').upload(name, file);
                 url = `${S_URL}/storage/v1/object/public/images/${name}`;
             }
-
             await _sb.from('confessions').insert([{ 
                 text: txt, image_url: url, city: "Santo Domingo", 
                 author_alias: myAlias, likes: 0, user_id: currentUser?.id 
             }]);
             location.reload();
-        } catch(e) {
-            btn.innerText = "PUBLICAR"; btn.disabled = false;
-        }
+        } catch(e) { btn.innerText = "PUBLICAR"; btn.disabled = false; }
     }
 
     async function sharePost(txt) {
@@ -214,21 +215,35 @@
         await _sb.from('confessions').update({ likes: nextLikes }).eq('id', id);
     }
 
-    async function openComments(id) { activePostId = id; toggleD(true); loadReplies(id); }
-    
-    async function loadReplies(id) {
+    // MEJORA: OPEN COMMENTS CON LIMPIEZA Y CARGA INICIAL
+    async function openComments(id) { 
+        activePostId = id; 
+        const list = document.getElementById('replies-list');
+        list.innerHTML = "<p style='color:#555; padding:20px;'>Cargando hilo...</p>";
+        toggleD(true); 
         const { data } = await _sb.from('replies').select('*').eq('confession_id', id).order('created_at', {ascending: true});
-        document.getElementById('replies-list').innerHTML = data.map(r => `
-            <div style="background:#222; padding:12px; border-radius:15px; margin-bottom:10px; border-left:3px solid var(--p); font-size:0.9rem; animation: pop 0.3s ease-out;">
-                ${r.text}
-            </div>
-        `).join('');
+        list.innerHTML = "";
+        if(data) data.forEach(r => renderSingleReply(r));
     }
 
+    // MEJORA: RENDERIZADO INDIVIDUAL PARA TIEMPO REAL
+    function renderSingleReply(r) {
+        const list = document.getElementById('replies-list');
+        const div = document.createElement('div');
+        div.style = "background:#222; padding:12px; border-radius:15px; border-left:3px solid var(--p); font-size:0.9rem; animation: pop 0.3s ease-out;";
+        div.innerText = r.text;
+        list.appendChild(div);
+        list.scrollTop = list.scrollHeight; // Scroll automático al final
+    }
+
+    // MEJORA: POSTREPLY NO RECARGA LA PÁGINA (USA EL REALTIME)
     async function postReply() {
-        const i = document.getElementById('reply-in'); if(!i.value.trim()) return;
-        await _sb.from('replies').insert([{ confession_id: activePostId, text: i.value, user_id: currentUser?.id }]);
-        i.value = ''; loadReplies(activePostId);
+        const i = document.getElementById('reply-in'); 
+        const text = i.value.trim();
+        if(!text) return;
+        const msg = currentUser ? `(@${myAlias}): ${text}` : text;
+        i.value = '';
+        await _sb.from('replies').insert([{ confession_id: activePostId, text: msg, user_id: currentUser?.id }]);
     }
 
     async function savePost(id) {
@@ -245,15 +260,10 @@
     async function loadProfileData() {
         const grid = document.getElementById('profile-grid');
         grid.innerHTML = '<div style="padding:20px;">Cargando tus susurros...</div>';
-        
         if(currentTab === 'mine') {
-            // FIX: Prioriza user_id si existe, si no usa alias
             let query = _sb.from('confessions').select('*').order('created_at', {ascending: false});
-            if(currentUser) {
-                query = query.eq('user_id', currentUser.id);
-            } else {
-                query = query.eq('author_alias', myAlias);
-            }
+            if(currentUser) { query = query.eq('user_id', currentUser.id); } 
+            else { query = query.eq('author_alias', myAlias); }
             const { data } = await query;
             renderGrid(data);
         } else {

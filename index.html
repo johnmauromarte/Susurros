@@ -3,56 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Susurros | Anónimo & Realtime</title>
+    <title>Susurros | App Completa</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --p: #ff0050; --bg: #000; --txt: #fff; --cyan: #25f4ee; --gray: #1a1a1a; }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--txt); font-family: -apple-system, system-ui, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
 
-        /* NOTIFICACIONES TOAST */
+        /* NOTIFICACIONES */
         #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; pointer-events: none; }
-        .toast { background: #fff; color: #000; padding: 12px; border-radius: 12px; margin-bottom: 8px; font-weight: bold; transform: translateY(-100px); opacity: 0; transition: 0.4s; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .toast { background: #fff; color: #000; padding: 12px; border-radius: 12px; margin-bottom: 8px; font-weight: bold; transform: translateY(-100px); opacity: 0; transition: 0.4s; text-align: center; }
         .toast.show { transform: translateY(0); opacity: 1; }
 
         /* FEED TIKTOK */
         #feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
         #feed::-webkit-scrollbar { display: none; }
-        .card { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; display: flex; align-items: center; justify-content: center; background: #000; }
+        .card { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; background: #000; display: flex; align-items: center; justify-content: center; }
         .bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.5; }
         .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 50%); z-index: 2; }
 
-        /* CAPA UI */
+        /* UI LAYER */
         .ui-layer { position: absolute; bottom: 0; left: 0; width: 100%; z-index: 3; padding: 25px 85px 140px 20px; pointer-events: none; }
         .ui-layer * { pointer-events: auto; }
         .author { color: var(--p); font-weight: 800; font-size: 0.9rem; margin-bottom: 4px; }
         .city { color: var(--cyan); font-size: 0.7rem; text-transform: uppercase; margin-bottom: 8px; }
         .text { font-size: 1.4rem; line-height: 1.4; text-shadow: 0 2px 10px #000; font-weight: 600; }
 
-        /* BARRA LATERAL */
+        /* SIDEBAR */
         .side-bar { position: absolute; right: 12px; bottom: 140px; z-index: 10; display: flex; flex-direction: column; gap: 18px; align-items: center; }
         .circle { width: 50px; height: 50px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
         .count { font-size: 0.7rem; font-weight: bold; margin-top: 2px; }
 
-        /* DRAWER Y MODALES */
+        /* PERFIL (RECONSTRUIDO) */
+        .modal { position: fixed; inset: 0; background: #000; z-index: 3000; display: none; flex-direction: column; }
+        .profile-header { padding: 50px 20px 20px; text-align: center; border-bottom: 1px solid #222; }
+        .profile-tabs { display: flex; border-bottom: 1px solid #222; }
+        .tab { flex: 1; padding: 15px; text-align: center; color: #555; font-weight: bold; cursor: pointer; }
+        .tab.active { color: var(--txt); border-bottom: 2px solid var(--p); }
+        .profile-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; flex: 1; overflow-y: auto; background: #000; }
+        .grid-item { aspect-ratio: 1/1; background: #111; overflow: hidden; position: relative; }
+        .grid-img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* ELEMENTOS COMUNES */
+        .fab { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; width: 60px; height: 35px; border-radius: 10px; border: none; font-weight: bold; font-size: 1.6rem; z-index: 100; cursor: pointer; }
         .drawer { position: fixed; bottom: 0; width: 100%; height: 70vh; background: #111; z-index: 2000; border-radius: 25px 25px 0 0; transform: translateY(100%); transition: 0.3s; padding: 20px; }
         .drawer.active { transform: translateY(0); }
-        .modal { position: fixed; inset: 0; background: #000; z-index: 3000; display: none; flex-direction: column; padding: 25px; }
-        .fab { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; width: 60px; height: 35px; border-radius: 10px; border: none; font-weight: bold; font-size: 1.6rem; z-index: 100; cursor: pointer; }
-        
-        input, textarea { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 12px; width: 100%; margin-top: 10px; outline: none; }
+        input, textarea { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 12px; border-radius: 12px; width: 100%; outline: none; }
     </style>
 </head>
 <body>
 
 <div id="toast-container"></div>
-<div id="feed">Cargando susurros...</div>
+<div id="feed">Cargando...</div>
 <button class="fab" onclick="toggleM('pub', true)">+</button>
+
+<div id="modal-profile" class="modal">
+    <div class="profile-header">
+        <div style="font-size: 3rem; margin-bottom: 10px;">👤</div>
+        <input type="text" id="alias-input" placeholder="Tu alias..." style="text-align:center; font-size:1.2rem; margin-bottom:10px;">
+        <div id="auth-info"><button onclick="loginGoogle()" style="background:#fff; color:#000; border:none; padding:8px 15px; border-radius:20px; font-weight:bold;">Vincular Google</button></div>
+    </div>
+    <div class="profile-tabs">
+        <div class="tab active" id="t-mine" onclick="switchTab('mine')">MIS POSTS</div>
+        <div class="tab" id="t-saved" onclick="switchTab('saved')">GUARDADOS</div>
+    </div>
+    <div id="profile-grid" class="profile-grid"></div>
+    <button onclick="toggleM('profile', false)" style="padding:20px; color:#888; background:none; border:none;">Cerrar Perfil</button>
+</div>
 
 <div id="drawer" class="drawer">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <strong>Debate Anónimo</strong>
-        <span onclick="toggleD(false)" style="font-size:2rem; color:#888; cursor:pointer;">&times;</span>
+        <strong>Hilo de Debate</strong>
+        <span onclick="toggleD(false)" style="font-size:2rem; color:#888;">&times;</span>
     </div>
     <div id="replies-list" style="height:75%; overflow-y:auto; margin:15px 0;"></div>
     <div style="display:flex; gap:10px;">
@@ -61,31 +83,13 @@
     </div>
 </div>
 
-<div id="modal-profile" class="modal">
-    <div style="text-align:center; padding-top:40px;">
-        <h2>Identidad Secreta</h2>
-        <p style="color:#555; font-size:0.8rem; margin:10px 0;">Este es tu alias público actual:</p>
-        <input type="text" id="alias-input" placeholder="Tu apodo..." style="text-align:center; font-size:1.2rem; border-color:var(--p);">
-        
-        <div id="auth-section" style="margin-top:30px;">
-            <button onclick="loginGoogle()" style="background:#fff; color:#000; padding:12px 25px; border-radius:30px; border:none; font-weight:bold; cursor:pointer;">Proteger Cuenta con Google</button>
-            <p style="font-size:0.7rem; color:#444; margin-top:10px;">Tu identidad real nunca será revelada.</p>
-        </div>
+<div id="modal-pub" class="modal" style="padding:25px; display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <span onclick="toggleM('pub', false)" style="color:#888">Cancelar</span>
+        <button onclick="publish()" id="btn-pub" style="background:var(--p); color:#fff; border:none; padding:10px 20px; border-radius:20px; font-weight:bold;">Susurrar</button>
     </div>
-    <div id="profile-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px; margin-top:30px; overflow-y:auto; flex:1;"></div>
-    <button onclick="toggleM('profile', false)" style="padding:20px; color:#888; background:none; border:none;">Cerrar</button>
-</div>
-
-<div id="modal-pub" class="modal">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span onclick="toggleM('pub', false)" style="color:#888; cursor:pointer;">Cancelar</span>
-        <button onclick="publish()" id="btn-pub" style="background:var(--p); color:#fff; border:none; padding:10px 25px; border-radius:25px; font-weight:bold;">Susurrar</button>
-    </div>
-    <textarea id="post-text" style="height:200px; margin-top:20px; font-size:1.1rem;" placeholder="¿Qué quieres confesar?"></textarea>
-    <label style="margin-top:20px; display:block; border:1px dashed #333; padding:20px; border-radius:15px; text-align:center;">
-        <span id="label-img">📸 Añadir Imagen de Fondo</span>
-        <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('label-img').innerText='✅ Imagen lista'">
-    </label>
+    <textarea id="post-text" style="height:200px;" placeholder="¿Qué quieres confesar?"></textarea>
+    <input type="file" id="post-img" style="margin-top:20px;">
 </div>
 
 <script>
@@ -93,94 +97,109 @@
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bGVzYXFrdmd2aWR5ZmptZm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzgyMDksImV4cCI6MjA5MTA1NDIwOX0.XjcFRTrUn8yVQ7-_g9kUgV4XnuE4RR4F_NMsxeMbS5E";
     const _sb = supabase.createClient(S_URL, S_KEY);
 
-    let activePostId = null, currentUser = null;
+    let activePostId = null, currentUser = null, activeTab = 'mine';
     let myAlias = localStorage.getItem('myAlias') || "Anónimo_" + Math.floor(Math.random()*999);
 
     async function init() {
         const { data: { session } } = await _sb.auth.getSession();
         currentUser = session?.user || null;
-        
         document.getElementById('alias-input').value = myAlias;
-        document.getElementById('alias-input').addEventListener('change', (e) => {
-            myAlias = e.target.value;
-            localStorage.setItem('myAlias', myAlias);
-        });
 
         if(currentUser) {
-            document.getElementById('auth-section').innerHTML = `<p style="color:var(--cyan)">Cuenta Vinculada ✅</p><button onclick="_sb.auth.signOut().then(()=>location.reload())" style="background:none; border:none; color:#444; font-size:0.7rem; margin-top:5px;">Cerrar Sesión</button>`;
+            document.getElementById('auth-info').innerHTML = `<span style="color:#555; font-size:0.8rem;">ID: ${currentUser.email.split('@')[0]} (Privado)</span>`;
         }
 
-        // Notificaciones Realtime
-        _sb.channel('global').on('postgres_changes', { event: 'INSERT', table: 'notifications' }, payload => {
-            if(currentUser && payload.new.user_id === currentUser.id) showToast(payload.new.message);
-        }).subscribe();
+        document.getElementById('alias-input').onchange = (e) => {
+            myAlias = e.target.value;
+            localStorage.setItem('myAlias', myAlias);
+        };
 
         loadFeed();
     }
 
-    function showToast(m) {
-        const t = document.createElement('div'); t.className = 'toast show'; t.innerText = m;
-        document.getElementById('toast-container').appendChild(t);
-        setTimeout(() => { t.classList.remove('show'); setTimeout(()=>t.remove(), 500); }, 3500);
-    }
-
     async function loadFeed() {
-        const { data, error } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
-        if(error) return;
+        const { data } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
         document.getElementById('feed').innerHTML = data.map(p => `
             <div class="card">
                 ${p.image_url ? `<img src="${p.image_url}" class="bg-img">` : ''}
                 <div class="ui-layer">
                     <div class="author">@${p.author_alias || 'Anónimo'}</div>
-                    <div class="city">📍 ${p.city || 'Cerca de ti'}</div>
+                    <div class="city">📍 ${p.city || 'Desconocido'}</div>
                     <div class="text">${p.text}</div>
                 </div>
                 <div class="side-bar">
                     <div onclick="doLike('${p.id}')" class="circle">❤️</div><span class="count" id="l-${p.id}">${p.likes || 0}</span>
-                    <div onclick="openComments('${p.id}')" class="circle">💬</div><span class="count">Hilos</span>
+                    <div onclick="openComments('${p.id}')" class="circle">💬</div><span class="count">Hilo</span>
                     <div onclick="savePost('${p.id}')" class="circle">🔖</div><span class="count">Guardar</span>
-                    <div onclick="toggleM('profile', true)" class="circle">👤</div><span class="count">Perfil</span>
+                    <div onclick="toggleM('profile', true)" class="circle">👤</div><span class="count">Tú</span>
                 </div>
             </div>
         `).join('');
     }
 
+    // --- LÓGICA DE PERFIL (SOLUCIÓN A TU PROBLEMA) ---
+    async function switchTab(tab) {
+        activeTab = tab;
+        document.getElementById('t-mine').classList.toggle('active', tab === 'mine');
+        document.getElementById('t-saved').classList.toggle('active', tab === 'saved');
+        loadProfileData();
+    }
+
+    async function loadProfileData() {
+        const grid = document.getElementById('profile-grid');
+        grid.innerHTML = '<p style="padding:20px; color:#444;">Cargando...</p>';
+
+        if(activeTab === 'mine') {
+            const { data } = await _sb.from('confessions').select('*').eq('author_alias', myAlias);
+            renderGrid(data);
+        } else {
+            if(!currentUser) return grid.innerHTML = '<p style="padding:20px; color:#666;">Vincula Google para ver guardados.</p>';
+            const { data } = await _sb.from('bookmarks').select('confessions(*)').eq('user_id', currentUser.id);
+            renderGrid(data ? data.map(b => b.confessions) : []);
+        }
+    }
+
+    function renderGrid(posts) {
+        const grid = document.getElementById('profile-grid');
+        if(!posts || posts.length === 0) return grid.innerHTML = '<p style="padding:20px; color:#444;">Nada por aquí todavía.</p>';
+        grid.innerHTML = posts.map(p => `
+            <div class="grid-item">
+                ${p.image_url ? `<img src="${p.image_url}" class="grid-img">` : `<div style="padding:5px; font-size:8px; color:#555;">${p.text.substring(0,40)}...</div>`}
+            </div>
+        `).join('');
+    }
+
+    // --- ACCIONES ---
+    async function doLike(id) {
+        await _sb.rpc('increment_likes', { post_id: id });
+        const l = document.getElementById(`l-${id}`); if(l) l.innerText = parseInt(l.innerText) + 1;
+    }
+
+    async function savePost(id) {
+        if(!currentUser) return alert("¡Víncula tu cuenta con Google para guardar susurros!");
+        await _sb.from('bookmarks').insert([{ confession_id: id, user_id: currentUser.id }]);
+        alert("Guardado en tu perfil 🔖");
+    }
+
     async function publish() {
         const txt = document.getElementById('post-text').value, file = document.getElementById('post-img').files[0];
         if(!txt.trim()) return;
-        const btn = document.getElementById('btn-pub'); btn.disabled = true; btn.innerText = "...";
-
         let url = null;
         if(file) {
             const name = Date.now() + "-" + file.name.replace(/\s/g, '_');
             await _sb.storage.from('images').upload(name, file);
             url = _sb.storage.from('images').getPublicUrl(name).data.publicUrl;
         }
-
         let city = "Anónimo";
-        try { const res = await fetch('https://ipapi.co/json/'); const json = await res.json(); city = json.city || "Anónimo"; } catch(e){}
-
-        await _sb.from('confessions').insert([{ 
-            text: txt, image_url: url, city: city, 
-            author_alias: myAlias,
-            user_id: currentUser?.id 
-        }]);
+        try { const r = await fetch('https://ipapi.co/json/'); const j = await r.json(); city = j.city || "Anónimo"; } catch(e){}
+        await _sb.from('confessions').insert([{ text: txt, image_url: url, city: city, author_alias: myAlias, user_id: currentUser?.id }]);
         location.reload();
-    }
-
-    async function doLike(id) {
-        await _sb.rpc('increment_likes', { post_id: id });
-        const l = document.getElementById(`l-${id}`); if(l) l.innerText = parseInt(l.innerText) + 1;
     }
 
     async function openComments(id) { activePostId = id; toggleD(true); loadReplies(id); }
     async function loadReplies(id) {
         const { data } = await _sb.from('replies').select('*').eq('confession_id', id).order('created_at', { ascending: true });
-        document.getElementById('replies-list').innerHTML = data.map(r => `
-            <div style="background:#222; padding:12px; border-radius:12px; margin-bottom:10px; font-size:0.9rem; border-left:3px solid var(--p);">
-                ${r.text}
-            </div>
-        `).join('');
+        document.getElementById('replies-list').innerHTML = data.map(r => `<div style="background:#222; padding:12px; border-radius:12px; margin-bottom:10px;">${r.text}</div>`).join('');
     }
 
     async function postReply() {
@@ -189,24 +208,9 @@
         i.value = ''; loadReplies(activePostId);
     }
 
-    async function savePost(id) {
-        if(!currentUser) return showToast("⚠️ Inicia sesión para guardar");
-        await _sb.from('bookmarks').insert([{ confession_id: id, user_id: currentUser.id }]);
-        showToast("¡Guardado en tu perfil! 🔖");
-    }
-
-    function loginGoogle() { _sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } }); }
     function toggleD(s) { document.getElementById('drawer').classList.toggle('active', s); }
-    function toggleM(id, s) { document.getElementById('modal-'+id).style.display = s ? 'flex' : 'none'; if(id==='profile' && s) loadMyPosts(); }
-
-    async function loadMyPosts() {
-        const { data } = await _sb.from('confessions').select('*').eq('author_alias', myAlias);
-        document.getElementById('profile-grid').innerHTML = data.map(p => `
-            <div style="aspect-ratio:1/1; background:#111; overflow:hidden; border:0.5px solid #222;">
-                ${p.image_url ? `<img src="${p.image_url}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="padding:5px; font-size:8px; color:#444;">${p.text}</div>`}
-            </div>
-        `).join('');
-    }
+    function toggleM(id, s) { document.getElementById('modal-'+id).style.display = s ? 'flex' : 'none'; if(id==='profile' && s) loadProfileData(); }
+    function loginGoogle() { _sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } }); }
 
     init();
 </script>

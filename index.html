@@ -10,17 +10,12 @@
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--txt); font-family: -apple-system, system-ui, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
 
-        /* TOASTS */
-        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 400px; pointer-events: none; }
-        .toast { background: #fff; color: #000; padding: 15px; border-radius: 15px; margin-bottom: 10px; font-weight: bold; transform: translateY(-100px); opacity: 0; transition: 0.4s; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .toast.show { transform: translateY(0); opacity: 1; }
-
         /* FEED ENGINE */
         #feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
         #feed::-webkit-scrollbar { display: none; }
         .card { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; overflow: hidden; background: #050505; display: flex; align-items: center; justify-content: center; }
-        .bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.6; }
-        .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.95) 5%, transparent 50%); z-index: 2; pointer-events: none; }
+        .bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.8; }
+        .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent 60%); z-index: 2; pointer-events: none; }
 
         /* UI LAYER */
         .ui-layer { position: absolute; bottom: 0; left: 0; width: 100%; z-index: 3; padding: 25px 85px 140px 20px; pointer-events: none; }
@@ -57,7 +52,6 @@
 </head>
 <body>
 
-<div id="toast-container"></div>
 <div id="feed">Cargando experiencias...</div>
 <button class="fab" onclick="toggleM('pub', true)">+</button>
 
@@ -120,11 +114,6 @@
             localStorage.setItem('myAlias', myAlias);
         };
 
-        _sb.auth.onAuthStateChange((_e, session) => {
-            currentUser = session?.user || null;
-            updateUserUI();
-        });
-
         loadFeed();
     }
 
@@ -138,10 +127,11 @@
     }
 
     async function loadFeed() {
-        const { data } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
+        const { data, error } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
+        if(error) return;
         document.getElementById('feed').innerHTML = data.map(p => `
             <div class="card" ondblclick="handleDoubleTap(event, '${p.id}')">
-                ${p.image_url ? `<img src="${p.image_url}" class="bg-img">` : ''}
+                ${p.image_url ? `<img src="${p.image_url}" class="bg-img" onerror="this.style.display='none'">` : ''}
                 <div class="ui-layer">
                     <div class="city-tag">📍 ${p.city || 'Anónimo'}</div>
                     <div class="text">${p.text}</div>
@@ -154,6 +144,50 @@
                 </div>
             </div>
         `).join('');
+    }
+
+    async function publish() {
+        const txt = document.getElementById('post-text').value;
+        const file = document.getElementById('post-img').files[0];
+        const btn = document.getElementById('btn-pub');
+
+        if(!txt.trim()) return alert("Escribe un mensaje");
+        
+        btn.innerText = "Procesando...";
+        btn.disabled = true;
+
+        let finalUrl = null;
+
+        try {
+            // 1. Subir al Storage
+            if(file) {
+                const fileName = Date.now() + "_" + file.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
+                const { data: upData, error: upError } = await _sb.storage.from('images').upload(fileName, file);
+
+                if (upError) throw new Error("ERROR STORAGE: " + upError.message);
+
+                const { data } = _sb.storage.from('images').getPublicUrl(fileName);
+                finalUrl = data.publicUrl;
+            }
+
+            // 2. Insertar en Tabla (sin llamar a la ciudad para evitar cuellos de botella)
+            const { error: insError } = await _sb.from('confessions').insert([{ 
+                text: txt, 
+                image_url: finalUrl, 
+                author_alias: myAlias,
+                city: "Local"
+            }]);
+
+            if (insError) throw new Error("ERROR TABLA: " + insError.message);
+
+            alert("¡Subido con éxito!");
+            location.reload();
+
+        } catch (err) {
+            alert(err.message);
+            btn.disabled = false;
+            btn.innerText = "Publicar";
+        }
     }
 
     function handleDoubleTap(e, id) {
@@ -177,13 +211,13 @@
 
     async function loadProfileData() {
         const grid = document.getElementById('profile-grid');
-        grid.innerHTML = '<div style="padding:20px;">...</div>';
+        grid.innerHTML = '<div style="padding:20px;">Cargando...</div>';
         
         if(currentTab === 'mine') {
             const { data } = await _sb.from('confessions').select('*').eq('author_alias', myAlias).order('created_at', {ascending: false});
             renderGrid(data);
         } else {
-            if(!currentUser) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Vincular Google para ver guardados.</p>';
+            if(!currentUser) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Vincula Google.</p>';
             const { data } = await _sb.from('bookmarks').select('confessions(*)').eq('user_id', currentUser.id);
             renderGrid(data ? data.map(b => b.confessions) : []);
         }
@@ -194,24 +228,9 @@
         if(!posts || posts.length === 0) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Vacío</p>';
         grid.innerHTML = posts.map(p => `
             <div class="grid-item">
-                ${p.image_url ? `<img src="${p.image_url}" class="grid-img">` : `<div style="padding:5px; font-size:8px;">${p.text.substring(0,40)}</div>`}
+                ${p.image_url ? `<img src="${p.image_url}" class="grid-img">` : `<div style="padding:10px; font-size:10px;">${p.text}</div>`}
             </div>
         `).join('');
-    }
-
-    async function publish() {
-        const txt = document.getElementById('post-text').value, file = document.getElementById('post-img').files[0];
-        if(!txt.trim()) return;
-        let url = null;
-        if(file) {
-            const name = Date.now() + "-" + file.name.replace(/\s/g, '_');
-            await _sb.storage.from('images').upload(name, file);
-            url = _sb.storage.from('images').getPublicUrl(name).data.publicUrl;
-        }
-        let city = "Anónimo";
-        try { const r = await fetch('https://ipapi.co/json/'); const j = await r.json(); city = j.city; } catch(e){}
-        await _sb.from('confessions').insert([{ text: txt, image_url: url, city: city, author_alias: myAlias, user_id: currentUser?.id }]);
-        location.reload();
     }
 
     async function openComments(id) { activePostId = id; toggleD(true); loadReplies(id); }
@@ -227,7 +246,7 @@
     }
 
     async function savePost(id) {
-        if(!currentUser) return alert("Vincular Google para guardar.");
+        if(!currentUser) return alert("Vincula Google.");
         await _sb.from('bookmarks').insert([{ confession_id: id, user_id: currentUser.id }]);
         alert("Guardado 🔖");
     }

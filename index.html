@@ -2,260 +2,115 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Susurros | Premium UI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Susurros | Ultra Experience</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { 
-            --p: #ff0050; 
-            --bg: #050505; 
-            --txt: #ffffff; 
-            --cyan: #25f4ee; 
+            --p: #ff0050; --bg: #000; --txt: #fff; --cyan: #25f4ee; 
             --glass: rgba(255, 255, 255, 0.08);
-            --card-bg: linear-gradient(135deg, #1a1a1a 0%, #050505 100%);
+            --safe-top: env(safe-area-inset-top);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
         body { 
-            background: var(--bg); 
-            color: var(--txt); 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
-            overflow: hidden; 
-            position: fixed; 
-            width: 100%; 
-            height: 100%; 
+            background: var(--bg); color: var(--txt); 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            overflow: hidden; position: fixed; width: 100%; height: 100%; 
         }
 
-        /* --- FEED TIKTOK STYLE --- */
-        #feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
+        /* --- FEED ENGINE --- */
+        #feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         #feed::-webkit-scrollbar { display: none; }
+        .card { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; background: #050505; display: flex; align-items: center; justify-content: center; }
+        .bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.5; }
+        .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 50%); z-index: 2; }
 
-        .card { 
-            height: 100vh; 
-            width: 100vw; 
-            scroll-snap-align: start; 
-            position: relative; 
-            background: var(--card-bg);
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .bg-img { 
-            position: absolute; 
-            inset: 0; 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            z-index: 1; 
-            opacity: 0.6;
-            filter: brightness(0.8);
-        }
-
-        .card::after { 
-            content: ''; 
-            position: absolute; 
-            inset: 0; 
-            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 40%, rgba(0,0,0,0.4) 100%); 
-            z-index: 2; 
-        }
-
-        /* --- CONTENIDO DEL POST --- */
-        .ui-layer { 
-            position: absolute; 
-            bottom: 0; 
-            left: 0; 
-            width: 100%; 
-            z-index: 3; 
-            padding: 30px 90px 150px 25px; 
-            pointer-events: none; 
-        }
-        
+        /* --- UI OVERLAY --- */
+        .ui-layer { position: absolute; bottom: 0; left: 0; width: 100%; z-index: 3; padding: 30px 90px 140px 25px; pointer-events: none; }
         .ui-layer * { pointer-events: auto; }
+        .author-info { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .city-badge { background: var(--glass); backdrop-filter: blur(10px); padding: 4px 12px; border-radius: 20px; font-size: 0.65rem; color: var(--cyan); border: 1px solid rgba(255,255,255,0.1); }
+        .post-text { font-size: 1.6rem; font-weight: 800; line-height: 1.2; text-shadow: 0 4px 10px rgba(0,0,0,0.5); }
 
-        .author-box { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .author { font-weight: 800; font-size: 1.1rem; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .city-tag { 
-            display: inline-block;
-            background: var(--glass);
-            backdrop-filter: blur(5px);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.65rem;
-            color: var(--cyan);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border: 1px solid rgba(255,255,255,0.1);
+        /* --- SIDE ACTIONS --- */
+        .side-bar { position: absolute; right: 15px; bottom: 140px; z-index: 10; display: flex; flex-direction: column; gap: 20px; }
+        .btn-action { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; }
+        .btn-action:active { transform: scale(0.9); }
+        .icon-circle { width: 55px; height: 55px; background: var(--glass); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); margin-bottom: 5px; }
+        .count-label { font-size: 0.75rem; font-weight: 700; color: #eee; }
+
+        /* --- PERFIL MODAL (PERFECCIONADO) --- */
+        #modal-profile { 
+            position: fixed; inset: 0; z-index: 4000; display: none; flex-direction: column; 
+            background: rgba(0,0,0,0.98); backdrop-filter: blur(30px); padding-top: var(--safe-top); 
         }
+        .profile-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .profile-header { padding: 40px 20px 20px; text-align: center; }
+        .avatar-main { width: 90px; height: 90px; border-radius: 50%; background: linear-gradient(45deg, var(--p), var(--cyan)); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; border: 3px solid #000; box-shadow: 0 0 20px rgba(255,0,80,0.3); }
+        #alias-display { background: none; border: none; color: #fff; font-size: 1.6rem; font-weight: 900; text-align: center; width: 100%; outline: none; margin-bottom: 5px; }
+        
+        .stats-row { display: flex; justify-content: center; gap: 30px; margin: 20px 0; }
+        .stat-item { text-align: center; }
+        .stat-val { display: block; font-size: 1.2rem; font-weight: 800; }
+        .stat-lab { font-size: 0.7rem; color: #666; text-transform: uppercase; }
 
-        .text { 
-            font-size: 1.5rem; 
-            line-height: 1.3; 
-            font-weight: 700; 
-            text-wrap: balance;
-            text-shadow: 0 2px 15px rgba(0,0,0,0.8);
-        }
+        .profile-tabs { display: flex; border-bottom: 1px solid #222; }
+        .tab-btn { flex: 1; padding: 15px; text-align: center; font-size: 0.8rem; font-weight: 800; color: #444; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #fff; border-bottom-color: var(--p); }
+        
+        .grid-container { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: #000; padding-bottom: 50px; }
+        .grid-item { aspect-ratio: 1/1; background: #111; position: relative; overflow: hidden; }
+        .grid-item img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* --- BARRA LATERAL ACCIONES --- */
-        .side-bar { 
-            position: absolute; 
-            right: 15px; 
-            bottom: 150px; 
-            z-index: 10; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 22px; 
-            align-items: center; 
-        }
-
-        .action-item { text-align: center; cursor: pointer; transition: transform 0.2s; }
-        .action-item:active { transform: scale(0.9); }
-
-        .btn-circle { 
-            width: 54px; 
-            height: 54px; 
-            background: var(--glass); 
-            border-radius: 50%; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 1.6rem; 
-            backdrop-filter: blur(15px); 
-            border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        .btn-circle.like-active { color: var(--p); border-color: var(--p); }
-
-        .label { font-size: 0.75rem; font-weight: 700; margin-top: 6px; text-shadow: 0 2px 4px #000; }
-
-        /* --- BOTÓN FLOTANTE (+) --- */
-        .fab { 
-            position: fixed; 
-            bottom: 40px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            width: 60px; 
-            height: 60px; 
-            background: #fff; 
-            border-radius: 50%; 
-            border: none; 
-            z-index: 100; 
-            font-size: 2rem; 
-            font-weight: 300;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 25px rgba(255,0,80,0.4), 0 8px 20px rgba(0,0,0,0.5);
-            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .fab:active { transform: translateX(-50%) scale(1.1) rotate(90deg); }
-
-        /* --- MODALES Y DRAWERS (DISEÑO GLASS) --- */
-        .modal, .drawer { 
-            position: fixed; 
-            inset: 0; 
-            z-index: 2000; 
-            display: none; 
-            flex-direction: column; 
-            background: rgba(10,10,10,0.95);
-            backdrop-filter: blur(20px);
-            padding: 30px 25px;
-        }
-
-        .drawer { 
-            top: auto; bottom: 0; height: 75vh; 
-            border-radius: 30px 30px 0 0; 
-            transform: translateY(100%); 
-            transition: 0.4s cubic-bezier(0.1, 0.7, 0.1, 1);
-            display: flex;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .drawer.active { transform: translateY(0); }
-
-        /* --- INPUTS --- */
-        textarea, input[type="text"] { 
-            background: rgba(255,255,255,0.05); 
-            border: 1px solid rgba(255,255,255,0.1); 
-            border-radius: 18px; 
-            color: #fff; 
-            padding: 15px; 
-            font-size: 1rem; 
-            outline: none;
-            width: 100%;
-        }
-        textarea:focus { border-color: var(--p); }
-
-        .btn-pub { 
-            background: var(--p); 
-            color: #fff; 
-            border: none; 
-            padding: 12px 25px; 
-            border-radius: 30px; 
-            font-weight: 800; 
-            font-size: 1rem;
-        }
-
-        /* --- PERFIL GRID --- */
-        .profile-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 2px; 
-            margin-top: 20px; 
-        }
-        .grid-sq { aspect-ratio: 1/1; background: #111; border: 0.1px solid #222; }
-
+        /* --- UTILS --- */
+        .fab { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); width: 65px; height: 40px; background: #fff; border-radius: 12px; z-index: 100; border: none; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 20px rgba(255,255,255,0.2); }
+        .modal-full { position: fixed; inset: 0; z-index: 5000; background: #000; display: none; flex-direction: column; padding: 30px 20px; }
     </style>
 </head>
 <body>
 
 <div id="feed"></div>
+<button class="fab" onclick="toggleView('pub', true)">+</button>
 
-<button class="fab" onclick="toggleM('pub', true)">+</button>
+<div id="modal-profile">
+    <div class="profile-content">
+        <div style="padding: 20px; display: flex; justify-content: space-between;">
+            <span onclick="toggleView('profile', false)" style="font-weight: 800; color: #555;">Cerrar</span>
+            <span onclick="loginGoogle()" id="auth-label" style="color: var(--cyan); font-weight: 800; font-size: 0.8rem;">Vincular Google</span>
+        </div>
+        
+        <div class="profile-header">
+            <div class="avatar-main">👤</div>
+            <input type="text" id="alias-display" placeholder="Escribe tu alias...">
+            <p style="font-size: 0.7rem; color: #444;">Toca para editar tu nombre anónimo</p>
+            
+            <div class="stats-row">
+                <div class="stat-item"><span class="stat-val" id="count-mine">0</span><span class="stat-lab">Susurros</span></div>
+                <div class="stat-item"><span class="stat-val" id="count-karma">0</span><span class="stat-lab">Karma</span></div>
+            </div>
+        </div>
 
-<div id="modal-pub" class="modal">
+        <div class="profile-tabs">
+            <div class="tab-btn active" id="tab-posts" onclick="setTab('posts')">MIS POSTS</div>
+            <div class="tab-btn" id="tab-saved" onclick="setTab('saved')">GUARDADOS</div>
+        </div>
+        <div id="profile-grid" class="grid-container"></div>
+    </div>
+</div>
+
+<div id="modal-pub" class="modal-full">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-        <span onclick="toggleM('pub', false)" style="font-weight:bold; color:#888;">Cerrar</span>
-        <button onclick="publish()" id="btn-pub" class="btn-pub">Publicar</button>
+        <span onclick="toggleView('pub', false)" style="color:#555">Cancelar</span>
+        <button onclick="publish()" id="btn-pub" style="background:var(--p); color:#fff; border:none; padding:10px 25px; border-radius:25px; font-weight:800;">PUBLICAR</button>
     </div>
-    <div class="city-tag" style="margin-bottom:15px; align-self:start;">📍 Ubicación Automática</div>
-    <textarea id="post-text" placeholder="Suelta ese secreto aquí..." rows="6"></textarea>
-    
-    <label style="margin-top:20px; display:flex; flex-direction:column; align-items:center; border: 2px dashed rgba(255,255,255,0.1); padding:40px; border-radius:20px; cursor:pointer;">
-        <span id="img-name" style="font-size:0.9rem; color:#666;">Añadir una foto de fondo</span>
-        <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-name').innerText='✅ Imagen cargada'">
-    </label>
-</div>
-
-<div id="drawer-chat" class="drawer">
-    <div style="width:40px; height:5px; background:rgba(255,255,255,0.2); border-radius:10px; margin:0 auto 20px;"></div>
-    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-        <h3 style="font-weight:800;">Debate Anónimo</h3>
-        <span onclick="toggleD(false)" style="color:#555;">Cerrar</span>
+    <textarea id="post-text" style="background:transparent; border:none; color:#fff; font-size:1.5rem; flex:1; outline:none; resize:none;" placeholder="¿Qué estás pensando...?"></textarea>
+    <div style="padding:20px 0;">
+        <label style="background: #111; padding: 15px; border-radius: 15px; display: block; text-align: center;">
+            <span id="img-status">📸 Añadir imagen de fondo</span>
+            <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-status').innerText='✅ Imagen lista'">
+        </label>
     </div>
-    <div id="replies-list" style="flex:1; overflow-y:auto; margin-bottom:20px;"></div>
-    <div style="display:flex; gap:10px; padding-bottom:10px;">
-        <input type="text" id="reply-in" placeholder="Dile algo...">
-        <button onclick="postReply()" style="color:var(--p); font-weight:800; background:none; border:none;">POST</button>
-    </div>
-</div>
-
-<div id="modal-profile" class="modal">
-    <div style="text-align:center; margin-bottom:40px;">
-        <div style="width:100px; height:100px; background:var(--glass); border-radius:50%; margin:0 auto 15px; display:flex; align-items:center; justify-content:center; font-size:3rem; border:2px solid var(--p);">👤</div>
-        <input type="text" id="alias-input" style="text-align:center; background:none; border:none; font-size:1.5rem; font-weight:800;" value="Susurro Anónimo">
-        <p id="user-status" style="font-size:0.75rem; color:#444; margin-top:5px;">Toque para cambiar su alias</p>
-        <button onclick="loginGoogle()" style="margin-top:20px; background:#fff; color:#000; border:none; padding:10px 20px; border-radius:30px; font-weight:bold; font-size:0.8rem;">Vincular con Google</button>
-    </div>
-    
-    <div style="display:flex; border-bottom:1px solid #222;">
-        <div class="tab" style="flex:1; text-align:center; padding:15px; border-bottom:2px solid var(--p); font-weight:800;">MIS SUSURROS</div>
-    </div>
-    <div id="profile-grid" class="profile-grid"></div>
-    
-    <button onclick="toggleM('profile', false)" style="margin-top:auto; padding:20px; color:#555; border:none; background:none;">Volver al Feed</button>
 </div>
 
 <script>
@@ -263,107 +118,120 @@
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bGVzYXFrdmd2aWR5ZmptZm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzgyMDksImV4cCI6MjA5MTA1NDIwOX0.XjcFRTrUn8yVQ7-_g9kUgV4XnuE4RR4F_NMsxeMbS5E";
     const _sb = supabase.createClient(S_URL, S_KEY);
 
-    let currentUserId = null, activePostId = null;
+    let userSession = null, currentTab = 'posts';
     let myAlias = localStorage.getItem('myAlias') || "Anónimo_" + Math.floor(Math.random()*999);
 
     async function init() {
         const { data: { session } } = await _sb.auth.getSession();
-        currentUserId = session?.user?.id || null;
-        document.getElementById('alias-input').value = myAlias;
+        userSession = session?.user || null;
         
-        document.getElementById('alias-input').onchange = (e) => {
+        const aliasInp = document.getElementById('alias-display');
+        aliasInp.value = myAlias;
+        aliasInp.onchange = (e) => {
             myAlias = e.target.value;
             localStorage.setItem('myAlias', myAlias);
         };
 
-        if(currentUserId) document.getElementById('user-status').innerText = "Cuenta Protegida ✅";
-
+        if(userSession) document.getElementById('auth-label').innerText = "CUENTA VINCULADA";
+        
         loadFeed();
     }
 
     async function loadFeed() {
-        const { data } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
-        const feed = document.getElementById('feed');
-        feed.innerHTML = data.map(p => `
+        const { data, error } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
+        if(error) return;
+        document.getElementById('feed').innerHTML = data.map(p => `
             <div class="card">
-                ${p.image_url ? `<img src="${p.image_url}" class="bg-img">` : ''}
+                ${p.image_url ? `<img src="${p.image_url}" class="bg-img" loading="lazy">` : ''}
                 <div class="ui-layer">
-                    <div class="author-box">
-                        <span class="author">@${p.author_alias || 'Anónimo'}</span>
-                        <span class="city-tag">📍 ${p.city || 'Desconocido'}</span>
+                    <div class="author-info">
+                        <span style="font-weight:900;">@${p.author_alias || 'Anónimo'}</span>
+                        <span class="city-badge">📍 ${p.city || 'Cerca'}</span>
                     </div>
-                    <div class="text">${p.text}</div>
+                    <div class="post-text">${p.text}</div>
                 </div>
                 <div class="side-bar">
-                    <div class="action-item" onclick="doLike('${p.id}')">
-                        <div class="btn-circle">❤️</div>
-                        <div class="label" id="l-${p.id}">${p.likes || 0}</div>
+                    <div class="btn-action" onclick="doLike('${p.id}')">
+                        <div class="icon-circle">❤️</div>
+                        <span class="count-label" id="l-${p.id}">${p.likes || 0}</span>
                     </div>
-                    <div class="action-item" onclick="openChat('${p.id}')">
-                        <div class="btn-circle">💬</div>
-                        <div class="label">Hilos</div>
-                    </div>
-                    <div class="action-item" onclick="toggleM('profile', true)">
-                        <div class="btn-circle">👤</div>
-                        <div class="label">Tú</div>
+                    <div class="btn-action" onclick="toggleM('profile', true)">
+                        <div class="icon-circle">👤</div>
+                        <span class="count-label">Perfil</span>
                     </div>
                 </div>
             </div>
         `).join('');
     }
 
+    // --- PERFIL OPTIMIZADO ---
+    function setTab(t) {
+        currentTab = t;
+        document.getElementById('tab-posts').classList.toggle('active', t === 'posts');
+        document.getElementById('tab-saved').classList.toggle('active', t === 'saved');
+        refreshProfileGrid();
+    }
+
+    async function refreshProfileGrid() {
+        const grid = document.getElementById('profile-grid');
+        grid.innerHTML = '<div style="padding:20px;">...</div>';
+        
+        try {
+            let posts = [];
+            if(currentTab === 'posts') {
+                const { data } = await _sb.from('confessions').select('*').eq('author_alias', myAlias);
+                posts = data || [];
+                document.getElementById('count-mine').innerText = posts.length;
+            } else {
+                if(!userSession) { grid.innerHTML = '<p style="grid-column:1/4; padding:40px; text-align:center; color:#444;">Inicia sesión para guardar.</p>'; return; }
+                const { data } = await _sb.from('bookmarks').select('confessions(*)').eq('user_id', userSession.id);
+                posts = data ? data.map(d => d.confessions) : [];
+            }
+
+            if(posts.length === 0) {
+                grid.innerHTML = '<p style="grid-column:1/4; padding:40px; text-align:center; color:#333;">No hay nada aquí.</p>';
+            } else {
+                grid.innerHTML = posts.map(p => `
+                    <div class="grid-item">
+                        ${p.image_url ? `<img src="${p.image_url}">` : `<div style="padding:5px; font-size:7px; color:#333;">${p.text}</div>`}
+                    </div>
+                `).join('');
+            }
+        } catch(e) { console.error(e); grid.innerHTML = 'Error de carga'; }
+    }
+
+    // --- ACCIONES CORE ---
     async function publish() {
         const txt = document.getElementById('post-text').value, file = document.getElementById('post-img').files[0];
         if(!txt.trim()) return;
-        const b = document.getElementById('btn-pub'); b.disabled = true; b.innerText = "...";
+        const btn = document.getElementById('btn-pub'); btn.innerText = "..."; btn.disabled = true;
 
         let url = null;
         if(file) {
-            const name = Date.now() + "-" + file.name.replace(/\s/g, '_');
+            const name = `img-${Date.now()}`;
             await _sb.storage.from('images').upload(name, file);
             url = _sb.storage.from('images').getPublicUrl(name).data.publicUrl;
         }
 
         let city = "Anónimo";
-        try { const r = await fetch('https://ipapi.co/json/'); const j = await r.json(); city = j.city; } catch(e){}
+        try { const r = await fetch('https://ipapi.co/json/'); const j = await r.json(); city = j.city || "Anónimo"; } catch(e){}
 
         await _sb.from('confessions').insert([{ 
-            text: txt, image_url: url, city: city, author_alias: myAlias, user_id: currentUserId 
+            text: txt, image_url: url, city: city, author_alias: myAlias, user_id: userSession?.id 
         }]);
         location.reload();
     }
 
     async function doLike(id) {
         await _sb.rpc('increment_likes', { post_id: id });
-        const el = document.getElementById(`l-${id}`); el.innerText = parseInt(el.innerText) + 1;
+        const l = document.getElementById(`l-${id}`); if(l) l.innerText = parseInt(l.innerText) + 1;
     }
 
-    function openChat(id) { activePostId = id; toggleD(true); loadReplies(id); }
-    async function loadReplies(id) {
-        const { data } = await _sb.from('replies').select('*').eq('confession_id', id);
-        document.getElementById('replies-list').innerHTML = data.map(r => `
-            <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:15px; margin-bottom:10px; font-size:0.95rem;">${r.text}</div>
-        `).join('');
+    function toggleView(view, show) {
+        document.getElementById('modal-' + view).style.display = show ? 'flex' : 'none';
+        if(view === 'profile' && show) refreshProfileGrid();
     }
 
-    async function postReply() {
-        const i = document.getElementById('reply-in'); if(!i.value.trim()) return;
-        await _sb.from('replies').insert([{ confession_id: activePostId, text: i.value, user_id: currentUserId }]);
-        i.value = ''; loadReplies(activePostId);
-    }
-
-    async function loadMyPosts() {
-        const { data } = await _sb.from('confessions').select('*').eq('author_alias', myAlias);
-        document.getElementById('profile-grid').innerHTML = data.map(p => `
-            <div class="grid-sq">${p.image_url ? `<img src="${p.image_url}" style="width:100%;height:100%;object-fit:cover;">` : ''}</div>
-        `).join('');
-    }
-
-    function toggleM(id, s) { 
-        document.getElementById('modal-'+id).style.display = s ? 'flex' : 'none'; 
-        if(id==='profile' && s) loadMyPosts();
-    }
-    function toggleD(s) { document.getElementById('drawer-chat').classList.toggle('active', s); }
     function loginGoogle() { _sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } }); }
 
     init();

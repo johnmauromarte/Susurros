@@ -3,146 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Susurros App | Final</title>
+    <title>Susurros | Social App Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --p: #ff0050; --bg: #000; --txt: #fff; --cyan: #25f4ee; }
+        :root { --p: #ff0050; --bg: #000; --txt: #fff; --cyan: #25f4ee; --glass: rgba(255,255,255,0.15); }
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: var(--txt); font-family: -apple-system, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
+        body { background: var(--bg); color: var(--txt); font-family: -apple-system, system-ui, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
 
-        /* FEED TIKTOK STYLE */
+        /* FEED ENGINE */
         #feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
         #feed::-webkit-scrollbar { display: none; }
-        .card { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; background: #050505; display: flex; align-items: center; justify-content: center; }
+        .card { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; overflow: hidden; background: #050505; display: flex; align-items: center; justify-content: center; }
         .bg-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.8; }
-        .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent 60%); z-index: 2; }
+        .card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 10%, transparent 60%); z-index: 2; pointer-events: none; }
 
-        /* TEXTO Y CIUDAD */
-        .ui-layer { position: absolute; bottom: 50px; left: 20px; right: 80px; z-index: 3; pointer-events: none; }
-        .city-tag { font-size: 0.85rem; font-weight: 800; color: var(--cyan); text-transform: uppercase; margin-bottom: 8px; }
-        .text { font-size: 1.5rem; font-weight: 700; text-shadow: 0 2px 10px #000; line-height: 1.3; }
+        /* UI LAYER */
+        .ui-layer { position: absolute; bottom: 0; left: 0; width: 100%; z-index: 3; padding: 25px 85px 140px 20px; pointer-events: none; }
+        .ui-layer * { pointer-events: auto; }
+        .city-tag { font-size: 0.8rem; font-weight: 800; color: var(--cyan); margin-bottom: 8px; text-transform: uppercase; }
+        .text { font-size: 1.5rem; line-height: 1.3; font-weight: 700; text-shadow: 0 2px 10px #000; }
 
-        /* BOTONES LATERALES */
-        .side-bar { position: absolute; right: 12px; bottom: 120px; z-index: 10; display: flex; flex-direction: column; gap: 20px; align-items: center; }
-        .circle { width: 52px; height: 52px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.2); }
-        .count { font-size: 0.8rem; font-weight: bold; margin-top: 4px; }
+        /* SIDEBAR */
+        .side-bar { position: absolute; right: 12px; bottom: 140px; z-index: 10; display: flex; flex-direction: column; gap: 18px; align-items: center; }
+        .circle { width: 52px; height: 52px; background: var(--glass); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.2); transition: 0.2s; cursor: pointer; }
+        .circle:active { transform: scale(0.9); }
+        .count { font-size: 0.75rem; font-weight: bold; margin-top: 4px; }
 
-        /* MODAL PUBLICAR */
+        /* MODALES Y DRAWER */
         .modal { position: fixed; inset: 0; background: #000; z-index: 3000; display: none; flex-direction: column; padding: 25px; }
-        .fab { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #fff; width: 65px; height: 40px; border-radius: 15px; border: none; font-size: 1.8rem; font-weight: bold; z-index: 100; cursor: pointer; }
+        .fab { position: fixed; bottom: 35px; left: 50%; transform: translateX(-50%); background: #fff; width: 65px; height: 38px; border-radius: 12px; border: none; font-weight: bold; font-size: 1.8rem; z-index: 100; cursor: pointer; }
         
-        textarea { width: 100%; height: 150px; background: #111; color: #fff; border: none; padding: 20px; border-radius: 20px; font-size: 1.2rem; margin-top: 20px; outline: none; }
-        .btn-pub { background: var(--p); color: #fff; border: none; padding: 12px 25px; border-radius: 25px; font-weight: bold; }
-        .upload-area { margin-top: 20px; background: #111; padding: 30px; border-radius: 20px; text-align: center; border: 2px dashed #333; display: block; }
+        .drawer { position: fixed; bottom: 0; width: 100%; height: 70vh; background: #111; z-index: 2000; border-radius: 25px 25px 0 0; transform: translateY(100%); transition: 0.3s; padding: 20px; display: flex; flex-direction: column; }
+        .drawer.active { transform: translateY(0); }
+
+        /* ANIMACIONES */
+        .heart-pop { position: absolute; font-size: 5rem; color: var(--p); transform: translate(-50%, -50%); animation: pop 0.7s ease-out forwards; z-index: 5; pointer-events: none; }
+        @keyframes pop { 0% { opacity: 1; scale: 0.5; } 50% { scale: 1.2; } 100% { opacity: 0; scale: 1; transform: translate(-50%, -150%); } }
     </style>
 </head>
 <body>
 
 <div id="feed">Cargando...</div>
+<button class="fab" onclick="toggleM('pub', true)">+</button>
 
-<button class="fab" onclick="toggleM(true)">+</button>
+<div id="drawer" class="drawer">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>Hilo de Debate</strong>
+        <span onclick="toggleD(false)" style="font-size:2rem; color:#888;">&times;</span>
+    </div>
+    <div id="replies-list" style="flex:1; overflow-y:auto; margin:15px 0; font-size: 0.9rem; color: #ccc;">
+        Aquí aparecerán las respuestas...
+    </div>
+    <div style="display:flex; gap:10px;">
+        <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff;" placeholder="Responder...">
+        <button onclick="alert('Función de respuesta en desarrollo')" style="color:var(--cyan); background:none; border:none; font-weight:bold;">ENVIAR</button>
+    </div>
+</div>
 
 <div id="modal-pub" class="modal">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span onclick="toggleM(false)" style="color:#888">Cancelar</span>
-        <button onclick="publish()" id="btn-pub" class="btn-pub">PUBLICAR</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <span onclick="toggleM('pub', false)" style="color:#888">Cancelar</span>
+        <button onclick="publish()" id="btn-pub" style="background:var(--p); color:#fff; border:none; padding:10px 25px; border-radius:25px; font-weight:bold;">Publicar</button>
     </div>
-    
-    <textarea id="post-text" placeholder="¿Qué quieres contar hoy?"></textarea>
-    
-    <label class="upload-area">
-        <span id="img-label">📸 Toca para añadir una foto</span>
-        <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-label').innerText='✅ FOTO LISTA'">
+    <textarea id="post-text" style="width:100%; height:180px; background:#111; color:#fff; border:none; padding:20px; border-radius:20px; font-size:1.2rem;" placeholder="Escribe tu secreto..."></textarea>
+    <label style="margin-top:20px; background:#111; padding:30px; border-radius:20px; text-align:center; border:1px dashed #444; display:block;">
+        <span id="img-label">📸 Subir imagen</span>
+        <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-label').innerText='✅ Imagen Lista'">
     </label>
 </div>
 
 <script>
-    // Configuración Supabase
     const S_URL = "https://xylesaqkvgvidyfjmfod.supabase.co";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bGVzYXFrdmd2aWR5ZmptZm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzgyMDksImV4cCI6MjA5MTA1NDIwOX0.XjcFRTrUn8yVQ7-_g9kUgV4XnuE4RR4F_NMsxeMbS5E";
     const _sb = supabase.createClient(S_URL, S_KEY);
 
-    // 1. CARGAR EL FEED
     async function loadFeed() {
         const { data, error } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
+        if(error) return;
         
-        if(error) return console.error("Error cargando feed:", error);
-
         document.getElementById('feed').innerHTML = data.map(p => `
-            <div class="card">
+            <div class="card" ondblclick="handleDoubleTap(event, '${p.id}')">
                 ${p.image_url ? `<img src="${p.image_url}" class="bg-img" onerror="this.style.display='none'">` : ''}
                 <div class="ui-layer">
                     <div class="city-tag">📍 ${p.city || 'Anónimo'}</div>
-                    <div class="text">${p.text || ''}</div>
+                    <div class="text">${p.text}</div>
                 </div>
                 <div class="side-bar">
                     <div class="circle" onclick="doLike('${p.id}')">❤️</div>
                     <span class="count" id="l-${p.id}">${p.likes || 0}</span>
-                    <div class="circle">💬</div>
+                    <div class="circle" onclick="toggleD(true)">💬</div>
+                    <span class="count">Hilo</span>
+                    <div class="circle" onclick="alert('Post Guardado')">🔖</div>
                 </div>
             </div>
         `).join('');
     }
 
-    // 2. PUBLICAR NUEVO POST
     async function publish() {
         const txt = document.getElementById('post-text').value;
         const file = document.getElementById('post-img').files[0];
         const btn = document.getElementById('btn-pub');
 
         if(!txt.trim()) return alert("Escribe un mensaje");
-        
-        btn.innerText = "Subiendo...";
-        btn.disabled = true;
+        btn.innerText = "Subiendo..."; btn.disabled = true;
 
         try {
             let finalUrl = null;
-
-            // Subir imagen si existe
             if(file) {
-                const fileName = `post_${Date.now()}.png`;
-                const { error: upError } = await _sb.storage.from('images').upload(fileName, file);
-                
-                if (upError) throw new Error("Error subiendo foto: " + upError.message);
-
-                const { data } = _sb.storage.from('images').getPublicUrl(fileName);
+                const fName = `img_${Date.now()}.png`;
+                const { error: upErr } = await _sb.storage.from('images').upload(fName, file);
+                if (upErr) throw upErr;
+                const { data } = _sb.storage.from('images').getPublicUrl(fName);
                 finalUrl = data.publicUrl;
             }
 
-            // INSERTAR EN TABLA (Mapeo exacto según tu captura de Supabase)
-            const { error: insError } = await _sb.from('confessions').insert([{ 
+            // Inserción limpia respetando tus columnas
+            const { error: insErr } = await _sb.from('confessions').insert([{ 
                 text: txt, 
                 image_url: finalUrl,
-                city: "Local", // Valor para la columna 'city'
-                likes: 0       // Valor para la columna 'likes'
+                city: "Local",
+                likes: 0
             }]);
 
-            if (insError) throw new Error("Error en base de datos: " + insError.message);
-
-            // Éxito: refrescar
+            if (insErr) throw insErr;
             location.reload();
-
         } catch (err) {
-            alert("⚠️ " + err.message);
-            btn.disabled = false;
-            btn.innerText = "PUBLICAR";
+            alert("Error: " + err.message);
+            btn.disabled = false; btn.innerText = "Publicar";
         }
     }
 
-    // 3. LIKES (Opcional, requiere función RPC en Supabase)
+    // FEATURE: Doble Tap para Like
+    function handleDoubleTap(e, id) {
+        const h = document.createElement('div'); h.className = 'heart-pop'; h.innerHTML = '❤️';
+        h.style.left = e.clientX+'px'; h.style.top = e.clientY+'px';
+        document.body.appendChild(h); setTimeout(()=>h.remove(), 700);
+        doLike(id);
+    }
+
     async function doLike(id) {
-        const c = document.getElementById(`l-${id}`);
-        if(c) c.innerText = parseInt(c.innerText) + 1;
-        // Aquí podrías llamar a un update en Supabase si quieres guardar el like
+        // Incremento visual inmediato
+        const c = document.getElementById(`l-${id}`); 
+        if(c) c.innerText = parseInt(c.innerText)+1;
+        // Intenta actualizar en DB si existe la columna likes
+        await _sb.from('confessions').update({ likes: parseInt(c.innerText) }).eq('id', id);
     }
 
-    function toggleM(show) {
-        document.getElementById('modal-pub').style.display = show ? 'flex' : 'none';
-    }
+    function toggleM(id, s) { document.getElementById(`modal-${id}`).style.display = s ? 'flex' : 'none'; }
+    function toggleD(s) { document.getElementById('drawer').classList.toggle('active', s); }
 
-    // Iniciar
     loadFeed();
 </script>
-
 </body>
 </html>

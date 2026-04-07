@@ -46,6 +46,10 @@
         
         .heart-pop { position: absolute; font-size: 5rem; transform: translate(-50%, -50%); animation: pop 0.7s ease-out forwards; z-index: 5; pointer-events: none; }
         @keyframes pop { 0% { opacity: 1; scale: 0.5; } 50% { scale: 1.2; } 100% { opacity: 0; scale: 1; transform: translate(-50%, -150%); } }
+
+        /* ESTILOS PARA ESTRUCTURA DE ARBOL */
+        .reply-card { background:#222; padding:12px; border-radius:15px; margin-bottom:10px; border-left:3px solid var(--p); font-size:0.9rem; position: relative; }
+        .reply-btn-mini { font-size: 0.7rem; color: var(--cyan); background: none; border: none; margin-top: 5px; cursor: pointer; text-transform: uppercase; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -69,10 +73,15 @@
 
 <div id="drawer" class="drawer">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <strong>Debate infinito</strong>
+        <strong id="drawer-title">Debate infinito</strong>
         <span onclick="toggleD(false)" style="font-size:2rem; color:#888; cursor:pointer;">&times;</span>
     </div>
-    <div id="replies-list" style="flex:1; overflow-y:auto; padding-right: 5px; display:flex; flex-direction:column; gap:10px;"></div>
+    <div id="replies-list" style="flex:1; overflow-y:auto; padding-right: 5px;"></div>
+    
+    <div id="reply-target-info" style="display:none; font-size: 0.7rem; color: var(--p); margin-bottom: 5px; padding-left: 10px;">
+        Respondiendo a un comentario... <span onclick="cancelReplyTo()" style="text-decoration:underline; cursor:pointer; margin-left:10px;">(Cancelar)</span>
+    </div>
+
     <div style="display:flex; gap:10px; padding:15px 0; border-top: 1px solid #222;">
         <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff;" placeholder="Añadir a este hilo...">
         <button onclick="postReply()" style="color:var(--cyan); background:none; border:none; font-weight:bold;">OK</button>
@@ -103,33 +112,16 @@
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bGVzYXFrdmd2aWR5ZmptZm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzgyMDksImV4cCI6MjA5MTA1NDIwOX0.XjcFRTrUn8yVQ7-_g9kUgV4XnuE4RR4F_NMsxeMbS5E";
     const _sb = supabase.createClient(S_URL, S_KEY);
 
-    let activePostId = null, currentUser = null, currentTab = 'mine';
+    let activePostId = null, activeParentId = null, currentUser = null, currentTab = 'mine';
     let myAlias = localStorage.getItem('myAlias') || "Anon" + Math.floor(Math.random()*999);
 
     async function init() {
         const { data: { session } } = await _sb.auth.getSession();
         currentUser = session?.user || null;
         document.getElementById('alias-input').value = myAlias;
-        
-        document.getElementById('alias-input').onchange = (e) => {
-            myAlias = e.target.value;
-            localStorage.setItem('myAlias', myAlias);
-        };
-
-        _sb.auth.onAuthStateChange((_event, session) => {
-            currentUser = session?.user || null;
-            updateUserUI();
-        });
-
-        // ACTIVAR REALTIME PARA HILOS INFINITOS
-        _sb.channel('replies_realtime').on('postgres_changes', { event: 'INSERT', table: 'replies' }, payload => {
-            if(payload.new.confession_id === activePostId) {
-                renderSingleReply(payload.new);
-            }
-        }).subscribe();
-
-        updateUserUI();
-        loadFeed();
+        document.getElementById('alias-input').onchange = (e) => { myAlias = e.target.value; localStorage.setItem('myAlias', myAlias); };
+        _sb.auth.onAuthStateChange((_event, session) => { currentUser = session?.user || null; updateUserUI(); });
+        updateUserUI(); loadFeed();
     }
 
     function updateUserUI() {
@@ -139,16 +131,10 @@
             if(avatar) document.getElementById('avatar-circle').innerHTML = `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover;">`;
             btn.innerHTML = "Cerrar Sesión";
             btn.onclick = async () => { await _sb.auth.signOut(); location.reload(); };
-        } else {
-            btn.innerHTML = "Conectar Google";
-            btn.onclick = loginGoogle;
-        }
+        } else { btn.innerHTML = "Conectar Google"; btn.onclick = loginGoogle; }
     }
 
-    async function loginGoogle() { 
-        const cleanURL = window.location.origin + window.location.pathname;
-        await _sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: cleanURL } }); 
-    }
+    async function loginGoogle() { const cleanURL = window.location.origin + window.location.pathname; await _sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: cleanURL } }); }
 
     async function loadFeed() {
         const { data, error } = await _sb.from('confessions').select('*').order('created_at', { ascending: false });
@@ -157,7 +143,7 @@
             <div class="card" ondblclick="handleDoubleTap(event, '${p.id}')">
                 ${p.image_url ? `<img src="${p.image_url}" class="bg-img" onerror="this.style.display='none'">` : ''}
                 <div class="ui-layer">
-                    <div class="city-tag">📍 Dominican Republic</div>
+                    <div class="city-tag">📍 ${p.city || 'Local'}</div>
                     <div class="author-tag">@${p.author_alias || 'Anon'}</div>
                     <div class="text">${p.text}</div>
                 </div>
@@ -184,21 +170,14 @@
                 await _sb.storage.from('images').upload(name, file);
                 url = `${S_URL}/storage/v1/object/public/images/${name}`;
             }
-            await _sb.from('confessions').insert([{ 
-                text: txt, image_url: url, city: "Santo Domingo", 
-                author_alias: myAlias, likes: 0, user_id: currentUser?.id 
-            }]);
+            await _sb.from('confessions').insert([{ text: txt, image_url: url, city: "Santo Domingo", author_alias: myAlias, likes: 0, user_id: currentUser?.id }]);
             location.reload();
         } catch(e) { btn.innerText = "PUBLICAR"; btn.disabled = false; }
     }
 
     async function sharePost(txt) {
-        if (navigator.share) {
-            navigator.share({ title: 'Susurro Anónimo', text: txt, url: window.location.href });
-        } else {
-            navigator.clipboard.writeText(txt + " - " + window.location.href);
-            alert("¡Link copiado!");
-        }
+        if (navigator.share) { navigator.share({ title: 'Susurro Anónimo', text: txt, url: window.location.href }); }
+        else { navigator.clipboard.writeText(txt + " - " + window.location.href); alert("¡Link copiado!"); }
     }
 
     function handleDoubleTap(e, id) {
@@ -215,84 +194,74 @@
         await _sb.from('confessions').update({ likes: nextLikes }).eq('id', id);
     }
 
-    // MEJORA: OPEN COMMENTS CON LIMPIEZA Y CARGA INICIAL
-    async function openComments(id) { 
-        activePostId = id; 
-        const list = document.getElementById('replies-list');
-        list.innerHTML = "<p style='color:#555; padding:20px;'>Cargando hilo...</p>";
-        toggleD(true); 
+    /* LOGICA DE HILO INFINITO Y ESTRUCTURA DE ARBOL */
+    async function openComments(id) { activePostId = id; activeParentId = null; cancelReplyTo(); toggleD(true); loadReplies(id); }
+    
+    async function loadReplies(id) {
         const { data } = await _sb.from('replies').select('*').eq('confession_id', id).order('created_at', {ascending: true});
-        list.innerHTML = "";
-        if(data) data.forEach(r => renderSingleReply(r));
-    }
-
-    // MEJORA: RENDERIZADO INDIVIDUAL PARA TIEMPO REAL
-    function renderSingleReply(r) {
         const list = document.getElementById('replies-list');
-        const div = document.createElement('div');
-        div.style = "background:#222; padding:12px; border-radius:15px; border-left:3px solid var(--p); font-size:0.9rem; animation: pop 0.3s ease-out;";
-        div.innerText = r.text;
-        list.appendChild(div);
-        list.scrollTop = list.scrollHeight; // Scroll automático al final
+        list.innerHTML = "";
+        
+        // Organizar en árbol
+        const map = {};
+        const roots = [];
+        data.forEach(r => {
+            map[r.id] = {...r, children: []};
+            if(!r.parent_id) roots.push(map[r.id]);
+            else if(map[r.parent_id]) map[r.parent_id].children.push(map[r.id]);
+        });
+
+        const renderNodes = (nodes, level = 0) => {
+            return nodes.map(n => `
+                <div class="reply-card" style="margin-left: ${level * 15}px; opacity: ${1 - (level * 0.1)}">
+                    <div>${n.text}</div>
+                    <button class="reply-btn-mini" onclick="setReplyTo('${n.id}')">Responder</button>
+                    ${n.children.length > 0 ? renderNodes(n.children, level + 1) : ''}
+                </div>
+            `).join('');
+        };
+        list.innerHTML = renderNodes(roots);
     }
 
-    // MEJORA: POSTREPLY NO RECARGA LA PÁGINA (USA EL REALTIME)
+    function setReplyTo(id) {
+        activeParentId = id;
+        document.getElementById('reply-target-info').style.display = 'block';
+        document.getElementById('reply-in').focus();
+    }
+
+    function cancelReplyTo() {
+        activeParentId = null;
+        document.getElementById('reply-target-info').style.display = 'none';
+    }
+
     async function postReply() {
-        const i = document.getElementById('reply-in'); 
-        const text = i.value.trim();
-        if(!text) return;
-        const msg = currentUser ? `(@${myAlias}): ${text}` : text;
-        i.value = '';
-        await _sb.from('replies').insert([{ confession_id: activePostId, text: msg, user_id: currentUser?.id }]);
+        const i = document.getElementById('reply-in'); if(!i.value.trim()) return;
+        await _sb.from('replies').insert([{ confession_id: activePostId, parent_id: activeParentId, text: i.value, user_id: currentUser?.id }]);
+        i.value = ''; cancelReplyTo(); loadReplies(activePostId);
     }
 
-    async function savePost(id) {
-        if(!currentUser) return alert("Conecta Google para guardar.");
-        await _sb.from('bookmarks').insert([{ confession_id: id, user_id: currentUser.id }]);
-        alert("Guardado 🔖");
-    }
-
-    function openFullPost(txt) {
-        document.getElementById('read-text').innerText = txt;
-        document.getElementById('read-modal').style.display = 'flex';
-    }
-
-    async function loadProfileData() {
-        const grid = document.getElementById('profile-grid');
-        grid.innerHTML = '<div style="padding:20px;">Cargando tus susurros...</div>';
-        if(currentTab === 'mine') {
-            let query = _sb.from('confessions').select('*').order('created_at', {ascending: false});
-            if(currentUser) { query = query.eq('user_id', currentUser.id); } 
-            else { query = query.eq('author_alias', myAlias); }
-            const { data } = await query;
-            renderGrid(data);
-        } else {
-            if(!currentUser) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Conecta Google para ver guardados.</p>';
-            const { data } = await _sb.from('bookmarks').select('confessions(*)').eq('user_id', currentUser.id);
-            renderGrid(data ? data.map(b => b.confessions) : []);
-        }
-    }
-
-    function renderGrid(posts) {
-        const grid = document.getElementById('profile-grid');
-        if(!posts || posts.length === 0) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Nada por aquí todavía.</p>';
-        grid.innerHTML = posts.map(p => `
-            <div class="grid-item" onclick="openFullPost('${p.text.replace(/'/g, "\\'")}')">
-                ${p.image_url ? `<img src="${p.image_url}" class="grid-img">` : `<div style="padding:10px; font-size:9px; color:#555; overflow:hidden;">${p.text}</div>`}
-            </div>
-        `).join('');
-    }
-
+    async function savePost(id) { if(!currentUser) return alert("Conecta Google para guardar."); await _sb.from('bookmarks').insert([{ confession_id: id, user_id: currentUser.id }]); alert("Guardado 🔖"); }
+    function openFullPost(txt) { document.getElementById('read-text').innerText = txt; document.getElementById('read-modal').style.display = 'flex'; }
     function toggleD(s) { document.getElementById('drawer').classList.toggle('active', s); }
     function toggleM(i, s) { document.getElementById(`modal-${i}`).style.display = s ? 'flex' : 'none'; }
     function toggleP(s) { document.getElementById('profile-view').style.display = s ? 'flex' : 'none'; if(s) loadProfileData(); }
 
-    async function changeTab(t) {
-        currentTab = t;
-        document.getElementById('tab-mine').className = t === 'mine' ? 'tab active' : 'tab';
-        document.getElementById('tab-saved').className = t === 'saved' ? 'tab active' : 'tab';
-        loadProfileData();
+    async function loadProfileData() {
+        const grid = document.getElementById('profile-grid');
+        grid.innerHTML = '<div style="padding:20px;">Cargando...</div>';
+        let query = _sb.from('confessions').select('*').order('created_at', {ascending: false});
+        if(currentTab === 'mine') { if(currentUser) query = query.eq('user_id', currentUser.id); else query = query.eq('author_alias', myAlias); }
+        else { if(!currentUser) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Conecta Google.</p>'; const { data } = await _sb.from('bookmarks').select('confessions(*)').eq('user_id', currentUser.id); renderGrid(data ? data.map(b => b.confessions) : []); return; }
+        const { data } = await query; renderGrid(data);
     }
+
+    function renderGrid(posts) {
+        const grid = document.getElementById('profile-grid');
+        if(!posts || posts.length === 0) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Nada aún.</p>';
+        grid.innerHTML = posts.map(p => `<div class="grid-item" onclick="openFullPost('${p.text.replace(/'/g, "\\'")}')">${p.image_url ? `<img src="${p.image_url}" class="grid-img">` : `<div style="padding:10px; font-size:9px; color:#555; overflow:hidden;">${p.text}</div>`}</div>`).join('');
+    }
+
+    async function changeTab(t) { currentTab = t; document.getElementById('tab-mine').className = t === 'mine' ? 'tab active' : 'tab'; document.getElementById('tab-saved').className = t === 'saved' ? 'tab active' : 'tab'; loadProfileData(); }
 
     init();
 </script>

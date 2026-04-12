@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Susurros | 100% Anónimo</title>
+    <title>Susurros | Social App Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --p: #ff0050; --bg: #000; --txt: #fff; --cyan: #25f4ee; --glass: rgba(255,255,255,0.12); }
@@ -24,29 +24,34 @@
 
         .side-bar { position: absolute; right: 12px; bottom: 140px; z-index: 10; display: flex; flex-direction: column; gap: 18px; align-items: center; }
         .circle { width: 52px; height: 52px; background: var(--glass); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.2); transition: 0.2s; cursor: pointer; }
+        .circle:active { transform: scale(0.9); }
         .count { font-size: 0.75rem; font-weight: bold; margin-top: 4px; }
 
         #profile-view { position: fixed; inset: 0; background: #000; z-index: 4000; display: none; flex-direction: column; }
-        .profile-header { padding: 40px 20px 20px; text-align: center; border-bottom: 1px solid #222; }
+        .profile-header { padding: 60px 20px 20px; text-align: center; border-bottom: 1px solid #222; }
         
-        /* Selector de Avatar */
-        #avatar-container { position: relative; width: 90px; height: 90px; margin: 0 auto 15px; cursor: pointer; }
-        #avatar-circle { width: 100%; height: 100%; background: #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; overflow: hidden; border: 2px solid var(--p); }
-        .edit-badge { position: absolute; bottom: 0; right: 0; background: var(--p); color: #fff; font-size: 0.7rem; padding: 4px 8px; border-radius: 10px; font-weight: bold; }
+        /* NUEVO: Estilos para el cambio de foto */
+        #avatar-container { position: relative; width: 85px; height: 85px; margin: 0 auto 15px; cursor: pointer; }
+        #avatar-circle { width: 100%; height: 100%; background: var(--p); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; overflow: hidden; }
+        .edit-badge { position: absolute; bottom: 0; right: 0; background: #fff; color: #000; font-size: 0.6rem; padding: 2px 5px; border-radius: 5px; font-weight: 800; }
 
         .profile-tabs { display: flex; border-bottom: 1px solid #222; }
         .tab { flex: 1; padding: 15px; text-align: center; color: #555; font-weight: bold; cursor: pointer; }
         .tab.active { color: #fff; border-bottom: 2px solid var(--p); }
         .profile-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
-        .grid-item { aspect-ratio: 1/1; background: #111; overflow: hidden; position: relative; }
+        .grid-item { aspect-ratio: 1/1; background: #111; overflow: hidden; position: relative; cursor: pointer; }
+        .grid-img { width: 100%; height: 100%; object-fit: cover; }
 
-        .drawer { position: fixed; bottom: 0; width: 100%; height: 75vh; background: #111; z-index: 5000; border-radius: 25px 25px 0 0; transform: translateY(100%); transition: 0.3s; padding: 20px; display: flex; flex-direction: column; }
-        .drawer.active { transform: translateY(0); }
         .modal { position: fixed; inset: 0; background: #000; z-index: 3000; display: none; flex-direction: column; padding: 25px; }
         .fab { position: fixed; bottom: 35px; left: 50%; transform: translateX(-50%); background: #fff; width: 65px; height: 38px; border-radius: 12px; border: none; font-weight: bold; font-size: 1.8rem; z-index: 100; cursor: pointer; }
+        .drawer { position: fixed; bottom: 0; width: 100%; height: 75vh; background: #111; z-index: 5000; border-radius: 25px 25px 0 0; transform: translateY(100%); transition: 0.3s; padding: 20px; display: flex; flex-direction: column; }
+        .drawer.active { transform: translateY(0); }
+
+        #read-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 6000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .read-content { background: #111; border-radius: 20px; padding: 25px; width: 100%; max-width: 400px; border: 1px solid #333; }
         
         .heart-pop { position: absolute; font-size: 5rem; transform: translate(-50%, -50%); animation: pop 0.7s ease-out forwards; z-index: 5; pointer-events: none; }
-        @keyframes pop { 0% { opacity: 1; scale: 0.5; } 100% { opacity: 0; scale: 1; transform: translate(-50%, -150%); } }
+        @keyframes pop { 0% { opacity: 1; scale: 0.5; } 50% { scale: 1.2; } 100% { opacity: 0; scale: 1; transform: translate(-50%, -150%); } }
     </style>
 </head>
 <body>
@@ -56,15 +61,15 @@
 
 <div id="profile-view">
     <div class="profile-header">
-        <div id="avatar-container" onclick="document.getElementById('avatar-upload').click()">
+        <div id="avatar-container" onclick="document.getElementById('avatar-input-file').click()">
             <div id="avatar-circle">👤</div>
             <div class="edit-badge">CAMBIAR</div>
-            <input type="file" id="avatar-upload" hidden accept="image/*" onchange="changeAvatar(this)">
+            <input type="file" id="avatar-input-file" hidden accept="image/*" onchange="updateProfilePhoto(this)">
         </div>
+        
         <input type="text" id="alias-input" style="background:none; border:none; color:#fff; text-align:center; font-size:1.6rem; font-weight:900; width:100%; outline:none;" placeholder="Tu Alias...">
-        <p id="user-status" style="font-size: 0.8rem; color: #555; margin-top: 5px;">Modo Anónimo Activo</p>
-        <button id="g-btn" style="margin-top:15px; background:var(--glass); color:#fff; padding:8px 15px; border-radius:20px; border:1px solid #333; font-size: 0.8rem;">Conectar Google (Solo para Guardar)</button>
-        <br><button onclick="toggleP(false)" style="margin-top:20px; color:var(--cyan); background:none; border:none; font-weight:bold;">VOLVER AL FEED</button>
+        <button id="g-btn" style="margin-top:15px; background:#fff; color:#000; padding:10px 20px; border-radius:25px; border:none; font-weight:bold;">Conectar Google</button>
+        <br><button onclick="toggleP(false)" style="margin-top:25px; color:#888; background:none; border:none; font-size:0.9rem;">Volver al Feed</button>
     </div>
     <div class="profile-tabs">
         <div class="tab active" id="tab-mine" onclick="changeTab('mine')">MIS POSTS</div>
@@ -73,27 +78,34 @@
     <div id="profile-grid" class="profile-grid"></div>
 </div>
 
+<div id="drawer" class="drawer">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <strong>Debate infinito</strong>
+        <span onclick="toggleD(false)" style="font-size:2rem; color:#888; cursor:pointer;">&times;</span>
+    </div>
+    <div id="replies-list" style="flex:1; overflow-y:auto; padding-right: 5px;"></div>
+    <div style="display:flex; gap:10px; padding:15px 0; border-top: 1px solid #222;">
+        <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff;" placeholder="Añadir a este hilo...">
+        <button onclick="postReply()" style="color:var(--cyan); background:none; border:none; font-weight:bold;">OK</button>
+    </div>
+</div>
+
 <div id="modal-pub" class="modal">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <span onclick="toggleM('pub', false)" style="color:#888; cursor:pointer;">Cerrar</span>
         <button onclick="publish()" id="btn-pub" style="background:var(--p); color:#fff; border:none; padding:10px 25px; border-radius:25px; font-weight:bold;">PUBLICAR</button>
     </div>
-    <textarea id="post-text" style="width:100%; height:200px; background:#111; color:#fff; border:none; padding:20px; border-radius:20px; font-size:1.2rem; outline:none; resize:none;" placeholder="¿Qué quieres confesar hoy?"></textarea>
+    <textarea id="post-text" style="width:100%; height:200px; background:#111; color:#fff; border:none; padding:20px; border-radius:20px; font-size:1.2rem; outline:none; resize:none;" placeholder="Tu secreto mejor guardado..."></textarea>
     <label style="margin-top:20px; background:#111; padding:40px; border-radius:20px; text-align:center; border:2px dashed #333; display:block; cursor:pointer;">
-        <span id="img-label">📸 Foto de fondo (opcional)</span>
-        <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-label').innerText='✅ IMAGEN LISTA'">
+        <span id="img-label">📸 Subir imagen de fondo</span>
+        <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-label').innerText='✅ FOTO LISTA'">
     </label>
 </div>
 
-<div id="drawer" class="drawer">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <strong>HILO</strong>
-        <span onclick="toggleD(false)" style="font-size:2rem; color:#888; cursor:pointer;">&times;</span>
-    </div>
-    <div id="replies-list" style="flex:1; overflow-y:auto;"></div>
-    <div style="display:flex; gap:10px; padding:15px 0;">
-        <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff;" placeholder="Responder...">
-        <button onclick="postReply()" style="color:var(--cyan); background:none; border:none; font-weight:bold;">OK</button>
+<div id="read-modal" onclick="this.style.display='none'">
+    <div class="read-content" id="read-box" onclick="event.stopPropagation()">
+        <p id="read-text" style="font-size:1.3rem; margin-bottom:20px;"></p>
+        <button onclick="document.getElementById('read-modal').style.display='none'" style="width:100%; padding:12px; border-radius:15px; border:none; background:var(--p); color:#fff; font-weight:bold;">CERRAR</button>
     </div>
 </div>
 
@@ -102,17 +114,20 @@
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bGVzYXFrdmd2aWR5ZmptZm9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzgyMDksImV4cCI6MjA5MTA1NDIwOX0.XjcFRTrUn8yVQ7-_g9kUgV4XnuE4RR4F_NMsxeMbS5E";
     const _sb = supabase.createClient(S_URL, S_KEY);
 
-    let currentUser = null, currentTab = 'mine', activePostId = null;
+    let activePostId = null, currentUser = null, currentTab = 'mine';
     let myAlias = localStorage.getItem('myAlias') || "Anon" + Math.floor(Math.random()*999);
-    let myAvatar = localStorage.getItem('myAvatar') || null;
+    // NUEVO: Guardar foto localmente
+    let myCustomPhoto = localStorage.getItem('myCustomPhoto') || null;
 
     async function init() {
         const { data: { session } } = await _sb.auth.getSession();
         currentUser = session?.user || null;
-
-        // Cargar Alias y Avatar
         document.getElementById('alias-input').value = myAlias;
-        if(myAvatar) document.getElementById('avatar-circle').innerHTML = `<img src="${myAvatar}" style="width:100%; height:100%; object-fit:cover;">`;
+        
+        // Cargar foto si ya existe
+        if(myCustomPhoto) {
+            document.getElementById('avatar-circle').innerHTML = `<img src="${myCustomPhoto}" style="width:100%; height:100%; object-fit:cover;">`;
+        }
 
         document.getElementById('alias-input').onchange = (e) => {
             myAlias = e.target.value;
@@ -121,41 +136,45 @@
 
         _sb.auth.onAuthStateChange((_event, session) => {
             currentUser = session?.user || null;
-            updateAuthUI();
+            updateUserUI();
         });
 
-        updateAuthUI();
+        updateUserUI();
         loadFeed();
     }
 
-    function updateAuthUI() {
+    // NUEVO: Función para cambiar la foto de perfil sin afectar a Google
+    function updateProfilePhoto(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                myCustomPhoto = e.target.result;
+                localStorage.setItem('myCustomPhoto', myCustomPhoto);
+                document.getElementById('avatar-circle').innerHTML = `<img src="${myCustomPhoto}" style="width:100%; height:100%; object-fit:cover;">`;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function updateUserUI() {
         const btn = document.getElementById('g-btn');
-        const status = document.getElementById('user-status');
         if(currentUser) {
-            btn.innerHTML = "Cerrar Google";
-            status.innerText = "Conectado como: " + currentUser.email;
+            // Prioridad a la foto personalizada, si no hay, usar Google, si no hay, icono
+            if(!myCustomPhoto) {
+                const googleAvatar = currentUser.user_metadata.avatar_url;
+                if(googleAvatar) document.getElementById('avatar-circle').innerHTML = `<img src="${googleAvatar}" style="width:100%; height:100%; object-fit:cover;">`;
+            }
+            btn.innerHTML = "Cerrar Sesión";
             btn.onclick = async () => { await _sb.auth.signOut(); location.reload(); };
         } else {
             btn.innerHTML = "Conectar Google";
-            status.innerText = "Modo Anónimo Activo (ID local)";
             btn.onclick = loginGoogle;
         }
     }
 
-    async function loginGoogle() {
-        await _sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
-    }
-
-    function changeAvatar(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                myAvatar = e.target.result;
-                localStorage.setItem('myAvatar', myAvatar);
-                document.getElementById('avatar-circle').innerHTML = `<img src="${myAvatar}" style="width:100%; height:100%; object-fit:cover;">`;
-            }
-            reader.readAsDataURL(input.files[0]);
-        }
+    async function loginGoogle() { 
+        const cleanURL = window.location.origin + window.location.pathname;
+        await _sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: cleanURL } }); 
     }
 
     async function loadFeed() {
@@ -163,17 +182,18 @@
         if(error) return;
         document.getElementById('feed').innerHTML = data.map(p => `
             <div class="card" ondblclick="handleDoubleTap(event, '${p.id}')">
-                ${p.image_url ? `<img src="${p.image_url}" class="bg-img">` : ''}
+                ${p.image_url ? `<img src="${p.image_url}" class="bg-img" onerror="this.style.display='none'">` : ''}
                 <div class="ui-layer">
-                    <div class="city-tag">📍 Santo Domingo</div>
+                    <div class="city-tag">📍 ${p.city || 'Local'}</div>
                     <div class="author-tag">@${p.author_alias || 'Anon'}</div>
                     <div class="text">${p.text}</div>
                 </div>
                 <div class="side-bar">
                     <div class="circle" onclick="doLike('${p.id}')">❤️</div><span class="count" id="l-${p.id}">${p.likes || 0}</span>
-                    <div class="circle" onclick="openComments('${p.id}')">💬</div>
-                    <div class="circle" onclick="savePost('${p.id}')">🔖</div>
-                    <div class="circle" onclick="toggleP(true)">👤</div>
+                    <div class="circle" onclick="openComments('${p.id}')">💬</div><span class="count">Hilo</span>
+                    <div class="circle" onclick="sharePost('${p.text}')">🔗</div><span class="count">Enviar</span>
+                    <div class="circle" onclick="savePost('${p.id}')">🔖</div><span class="count">Save</span>
+                    <div class="circle" onclick="toggleP(true)">👤</div><span class="count">Perfil</span>
                 </div>
             </div>
         `).join('');
@@ -195,7 +215,8 @@
             }
 
             await _sb.from('confessions').insert([{ 
-                text: txt, image_url: url, author_alias: myAlias, likes: 0, user_id: currentUser?.id || 'anon'
+                text: txt, image_url: url, city: "Santo Domingo", 
+                author_alias: myAlias, likes: 0, user_id: currentUser?.id 
             }]);
             location.reload();
         } catch(e) {
@@ -203,46 +224,72 @@
         }
     }
 
-    async function doLike(id) {
-        const c = document.getElementById(`l-${id}`);
-        const n = parseInt(c.innerText) + 1;
-        c.innerText = n;
-        await _sb.from('confessions').update({ likes: n }).eq('id', id);
+    async function sharePost(txt) {
+        if (navigator.share) {
+            navigator.share({ title: 'Susurro Anónimo', text: txt, url: window.location.href });
+        } else {
+            navigator.clipboard.writeText(txt + " - " + window.location.href);
+            alert("¡Link copiado!");
+        }
     }
 
     function handleDoubleTap(e, id) {
         const h = document.createElement('div'); h.className = 'heart-pop'; h.innerHTML = '❤️';
         h.style.left = e.clientX+'px'; h.style.top = e.clientY+'px';
-        document.body.appendChild(h); setTimeout(()=>h.remove(), 700); doLike(id);
+        document.body.appendChild(h); setTimeout(()=>h.remove(), 700);
+        doLike(id);
+    }
+
+    async function doLike(id) {
+        const c = document.getElementById(`l-${id}`); 
+        const nextLikes = parseInt(c.innerText) + 1;
+        c.innerText = nextLikes;
+        await _sb.from('confessions').update({ likes: nextLikes }).eq('id', id);
     }
 
     async function openComments(id) { activePostId = id; toggleD(true); loadReplies(id); }
+    
     async function loadReplies(id) {
-        const { data } = await _sb.from('replies').select('*').eq('confession_id', id);
-        document.getElementById('replies-list').innerHTML = data.map(r => `<div style="background:#222; padding:12px; border-radius:15px; margin-bottom:10px; border-left:3px solid var(--p);">${r.text}</div>`).join('');
+        const { data } = await _sb.from('replies').select('*').eq('confession_id', id).order('created_at', {ascending: true});
+        document.getElementById('replies-list').innerHTML = data.map(r => `
+            <div style="background:#222; padding:12px; border-radius:15px; margin-bottom:10px; border-left:3px solid var(--p); font-size:0.9rem; animation: pop 0.3s ease-out;">
+                ${r.text}
+            </div>
+        `).join('');
     }
 
     async function postReply() {
         const i = document.getElementById('reply-in'); if(!i.value.trim()) return;
-        await _sb.from('replies').insert([{ confession_id: activePostId, text: i.value, user_id: currentUser?.id || 'anon' }]);
+        await _sb.from('replies').insert([{ confession_id: activePostId, text: i.value, user_id: currentUser?.id }]);
         i.value = ''; loadReplies(activePostId);
     }
 
     async function savePost(id) {
-        if(!currentUser) return alert("Inicia sesión con Google para guardar permanentemente.");
+        if(!currentUser) return alert("Conecta Google para guardar.");
         await _sb.from('bookmarks').insert([{ confession_id: id, user_id: currentUser.id }]);
-        alert("¡Guardado!");
+        alert("Guardado 🔖");
+    }
+
+    function openFullPost(txt) {
+        document.getElementById('read-text').innerText = txt;
+        document.getElementById('read-modal').style.display = 'flex';
     }
 
     async function loadProfileData() {
         const grid = document.getElementById('profile-grid');
-        grid.innerHTML = '<div style="padding:20px;">Cargando...</div>';
+        grid.innerHTML = '<div style="padding:20px;">Cargando tus susurros...</div>';
+        
         if(currentTab === 'mine') {
-            // Buscamos por Alias para mantener el anonimato total
-            const { data } = await _sb.from('confessions').select('*').eq('author_alias', myAlias);
+            let query = _sb.from('confessions').select('*').order('created_at', {ascending: false});
+            if(currentUser) {
+                query = query.eq('user_id', currentUser.id);
+            } else {
+                query = query.eq('author_alias', myAlias);
+            }
+            const { data } = await query;
             renderGrid(data);
         } else {
-            if(!currentUser) return grid.innerHTML = '<p style="padding:20px;">Inicia sesión para ver tus guardados.</p>';
+            if(!currentUser) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Conecta Google para ver guardados.</p>';
             const { data } = await _sb.from('bookmarks').select('confessions(*)').eq('user_id', currentUser.id);
             renderGrid(data ? data.map(b => b.confessions) : []);
         }
@@ -250,14 +297,19 @@
 
     function renderGrid(posts) {
         const grid = document.getElementById('profile-grid');
-        if(!posts || posts.length === 0) return grid.innerHTML = '<p style="padding:20px;">Nada por aquí.</p>';
-        grid.innerHTML = posts.map(p => `<div class="grid-item">${p.image_url ? `<img src="${p.image_url}" style="width:100%; height:100%; object-fit:cover;">` : `<div style="padding:10px; font-size:9px; color:#444;">${p.text}</div>`}</div>`).join('');
+        if(!posts || posts.length === 0) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Nada por aquí todavía.</p>';
+        grid.innerHTML = posts.map(p => `
+            <div class="grid-item" onclick="openFullPost('${p.text.replace(/'/g, "\\'")}')">
+                ${p.image_url ? `<img src="${p.image_url}" class="grid-img">` : `<div style="padding:10px; font-size:9px; color:#555; overflow:hidden;">${p.text}</div>`}
+            </div>
+        `).join('');
     }
 
     function toggleD(s) { document.getElementById('drawer').classList.toggle('active', s); }
     function toggleM(i, s) { document.getElementById(`modal-${i}`).style.display = s ? 'flex' : 'none'; }
     function toggleP(s) { document.getElementById('profile-view').style.display = s ? 'flex' : 'none'; if(s) loadProfileData(); }
-    function changeTab(t) {
+
+    async function changeTab(t) {
         currentTab = t;
         document.getElementById('tab-mine').className = t === 'mine' ? 'tab active' : 'tab';
         document.getElementById('tab-saved').className = t === 'saved' ? 'tab active' : 'tab';

@@ -29,8 +29,6 @@
 
         #profile-view { position: fixed; inset: 0; background: #000; z-index: 4000; display: none; flex-direction: column; }
         .profile-header { padding: 60px 20px 20px; text-align: center; border-bottom: 1px solid #222; }
-        
-        /* NUEVO: Estilos para el cambio de foto */
         #avatar-container { position: relative; width: 85px; height: 85px; margin: 0 auto 15px; cursor: pointer; }
         #avatar-circle { width: 100%; height: 100%; background: var(--p); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; overflow: hidden; }
         .edit-badge { position: absolute; bottom: 0; right: 0; background: #fff; color: #000; font-size: 0.6rem; padding: 2px 5px; border-radius: 5px; font-weight: 800; }
@@ -52,6 +50,11 @@
         
         .heart-pop { position: absolute; font-size: 5rem; transform: translate(-50%, -50%); animation: pop 0.7s ease-out forwards; z-index: 5; pointer-events: none; }
         @keyframes pop { 0% { opacity: 1; scale: 0.5; } 50% { scale: 1.2; } 100% { opacity: 0; scale: 1; transform: translate(-50%, -150%); } }
+
+        /* Estilos Legales y Moderación */
+        .legal-box { font-size: 0.7rem; color: #666; margin-top: 15px; line-height: 1.2; text-align: left; }
+        .report-btn { color: #ff4444 !important; font-size: 0.6rem !important; margin-top: 5px; font-weight: bold; }
+        #legal-modal { background: rgba(0,0,0,0.9); padding: 40px 25px; z-index: 7000; }
     </style>
 </head>
 <body>
@@ -66,10 +69,10 @@
             <div class="edit-badge">CAMBIAR</div>
             <input type="file" id="avatar-input-file" hidden accept="image/*" onchange="updateProfilePhoto(this)">
         </div>
-        
         <input type="text" id="alias-input" style="background:none; border:none; color:#fff; text-align:center; font-size:1.6rem; font-weight:900; width:100%; outline:none;" placeholder="Tu Alias...">
         <button id="g-btn" style="margin-top:15px; background:#fff; color:#000; padding:10px 20px; border-radius:25px; border:none; font-weight:bold;">Conectar Google</button>
-        <br><button onclick="toggleP(false)" style="margin-top:25px; color:#888; background:none; border:none; font-size:0.9rem;">Volver al Feed</button>
+        <br><button onclick="toggleM('legal', true)" style="margin-top:10px; color:var(--cyan); background:none; border:none; font-size:0.8rem;">Términos y Privacidad</button>
+        <br><button onclick="toggleP(false)" style="margin-top:15px; color:#888; background:none; border:none; font-size:0.9rem;">Volver al Feed</button>
     </div>
     <div class="profile-tabs">
         <div class="tab active" id="tab-mine" onclick="changeTab('mine')">MIS POSTS</div>
@@ -78,16 +81,15 @@
     <div id="profile-grid" class="profile-grid"></div>
 </div>
 
-<div id="drawer" class="drawer">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <strong>Debate infinito</strong>
-        <span onclick="toggleD(false)" style="font-size:2rem; color:#888; cursor:pointer;">&times;</span>
+<div id="modal-legal" class="modal" style="display:none; overflow-y:auto;">
+    <h2 style="color:var(--p); margin-bottom:20px;">Escudo Legal</h2>
+    <div style="color:#ccc; font-size:0.9rem; line-height:1.5;">
+        <p><strong>1. Responsabilidad:</strong> El usuario es el único responsable del contenido generado (UGC). Susurros no se hace responsable de las opiniones vertidas.</p><br>
+        <p><strong>2. Tolerancia Cero:</strong> Queda prohibido el acoso, contenido de odio, desnudez o amenazas. Dicho contenido será eliminado sin previo aviso.</p><br>
+        <p><strong>3. Privacidad:</strong> Al usar Google Auth, solo almacenamos tu ID técnico para gestionar tus posts. No vendemos tus datos.</p><br>
+        <p><strong>4. Moderación:</strong> Al publicar, otorgas a la app el derecho de moderar o borrar contenido denunciado por la comunidad.</p>
     </div>
-    <div id="replies-list" style="flex:1; overflow-y:auto; padding-right: 5px;"></div>
-    <div style="display:flex; gap:10px; padding:15px 0; border-top: 1px solid #222;">
-        <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff;" placeholder="Añadir a este hilo...">
-        <button onclick="postReply()" style="color:var(--cyan); background:none; border:none; font-weight:bold;">OK</button>
-    </div>
+    <button onclick="toggleM('legal', false)" style="margin-top:30px; background:#fff; padding:15px; border-radius:15px; border:none; font-weight:bold;">ENTENDIDO</button>
 </div>
 
 <div id="modal-pub" class="modal">
@@ -95,11 +97,28 @@
         <span onclick="toggleM('pub', false)" style="color:#888; cursor:pointer;">Cerrar</span>
         <button onclick="publish()" id="btn-pub" style="background:var(--p); color:#fff; border:none; padding:10px 25px; border-radius:25px; font-weight:bold;">PUBLICAR</button>
     </div>
-    <textarea id="post-text" style="width:100%; height:200px; background:#111; color:#fff; border:none; padding:20px; border-radius:20px; font-size:1.2rem; outline:none; resize:none;" placeholder="Tu secreto mejor guardado..."></textarea>
-    <label style="margin-top:20px; background:#111; padding:40px; border-radius:20px; text-align:center; border:2px dashed #333; display:block; cursor:pointer;">
-        <span id="img-label">📸 Subir imagen de fondo</span>
+    <textarea id="post-text" style="width:100%; height:180px; background:#111; color:#fff; border:none; padding:20px; border-radius:20px; font-size:1.2rem; outline:none; resize:none;" placeholder="Tu secreto mejor guardado..."></textarea>
+    
+    <div class="legal-box">
+        ⚠️ Al publicar, aceptas que eres el único responsable del contenido y que este cumple con nuestras normas de comunidad.
+    </div>
+
+    <label style="margin-top:20px; background:#111; padding:30px; border-radius:20px; text-align:center; border:2px dashed #333; display:block; cursor:pointer;">
+        <span id="img-label">📸 Imagen de fondo (opcional)</span>
         <input type="file" id="post-img" hidden accept="image/*" onchange="document.getElementById('img-label').innerText='✅ FOTO LISTA'">
     </label>
+</div>
+
+<div id="drawer" class="drawer">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <strong>Debate infinito</strong>
+        <span onclick="toggleD(false)" style="font-size:2rem; color:#888; cursor:pointer;">&times;</span>
+    </div>
+    <div id="replies-list" style="flex:1; overflow-y:auto;"></div>
+    <div style="display:flex; gap:10px; padding:15px 0; border-top: 1px solid #222;">
+        <input type="text" id="reply-in" style="flex:1; background:#222; border:none; padding:12px; border-radius:25px; color:#fff;" placeholder="Responder...">
+        <button onclick="postReply()" style="color:var(--cyan); background:none; border:none; font-weight:bold;">OK</button>
+    </div>
 </div>
 
 <div id="read-modal" onclick="this.style.display='none'">
@@ -116,18 +135,13 @@
 
     let activePostId = null, currentUser = null, currentTab = 'mine';
     let myAlias = localStorage.getItem('myAlias') || "Anon" + Math.floor(Math.random()*999);
-    // NUEVO: Guardar foto localmente
     let myCustomPhoto = localStorage.getItem('myCustomPhoto') || null;
 
     async function init() {
         const { data: { session } } = await _sb.auth.getSession();
         currentUser = session?.user || null;
         document.getElementById('alias-input').value = myAlias;
-        
-        // Cargar foto si ya existe
-        if(myCustomPhoto) {
-            document.getElementById('avatar-circle').innerHTML = `<img src="${myCustomPhoto}" style="width:100%; height:100%; object-fit:cover;">`;
-        }
+        if(myCustomPhoto) document.getElementById('avatar-circle').innerHTML = `<img src="${myCustomPhoto}" style="width:100%; height:100%; object-fit:cover;">`;
 
         document.getElementById('alias-input').onchange = (e) => {
             myAlias = e.target.value;
@@ -143,7 +157,6 @@
         loadFeed();
     }
 
-    // NUEVO: Función para cambiar la foto de perfil sin afectar a Google
     function updateProfilePhoto(input) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
@@ -159,10 +172,9 @@
     function updateUserUI() {
         const btn = document.getElementById('g-btn');
         if(currentUser) {
-            // Prioridad a la foto personalizada, si no hay, usar Google, si no hay, icono
             if(!myCustomPhoto) {
-                const googleAvatar = currentUser.user_metadata.avatar_url;
-                if(googleAvatar) document.getElementById('avatar-circle').innerHTML = `<img src="${googleAvatar}" style="width:100%; height:100%; object-fit:cover;">`;
+                const avatar = currentUser.user_metadata.avatar_url;
+                if(avatar) document.getElementById('avatar-circle').innerHTML = `<img src="${avatar}" style="width:100%; height:100%; object-fit:cover;">`;
             }
             btn.innerHTML = "Cerrar Sesión";
             btn.onclick = async () => { await _sb.auth.signOut(); location.reload(); };
@@ -191,7 +203,7 @@
                 <div class="side-bar">
                     <div class="circle" onclick="doLike('${p.id}')">❤️</div><span class="count" id="l-${p.id}">${p.likes || 0}</span>
                     <div class="circle" onclick="openComments('${p.id}')">💬</div><span class="count">Hilo</span>
-                    <div class="circle" onclick="sharePost('${p.text}')">🔗</div><span class="count">Enviar</span>
+                    <div class="circle" onclick="reportPost('${p.id}')">🚩</div><span class="count report-btn">REPORT</span>
                     <div class="circle" onclick="savePost('${p.id}')">🔖</div><span class="count">Save</span>
                     <div class="circle" onclick="toggleP(true)">👤</div><span class="count">Perfil</span>
                 </div>
@@ -224,12 +236,12 @@
         }
     }
 
-    async function sharePost(txt) {
-        if (navigator.share) {
-            navigator.share({ title: 'Susurro Anónimo', text: txt, url: window.location.href });
-        } else {
-            navigator.clipboard.writeText(txt + " - " + window.location.href);
-            alert("¡Link copiado!");
+    // HERRAMIENTA DE MODERACIÓN: REPORTAR
+    async function reportPost(id) {
+        if(confirm("¿Reportar este contenido por infringir las normas?")) {
+            // Aquí puedes crear una tabla 'reports' en Supabase para recibir las alertas
+            const { error } = await _sb.from('reports').insert([{ confession_id: id, reporter_id: currentUser?.id || 'anon' }]);
+            alert("Gracias. El equipo de moderación revisará este post.");
         }
     }
 
@@ -252,7 +264,7 @@
     async function loadReplies(id) {
         const { data } = await _sb.from('replies').select('*').eq('confession_id', id).order('created_at', {ascending: true});
         document.getElementById('replies-list').innerHTML = data.map(r => `
-            <div style="background:#222; padding:12px; border-radius:15px; margin-bottom:10px; border-left:3px solid var(--p); font-size:0.9rem; animation: pop 0.3s ease-out;">
+            <div style="background:#222; padding:12px; border-radius:15px; margin-bottom:10px; border-left:3px solid var(--p); font-size:0.9rem;">
                 ${r.text}
             </div>
         `).join('');
@@ -277,19 +289,13 @@
 
     async function loadProfileData() {
         const grid = document.getElementById('profile-grid');
-        grid.innerHTML = '<div style="padding:20px;">Cargando tus susurros...</div>';
-        
+        grid.innerHTML = '<div style="padding:20px;">Cargando...</div>';
         if(currentTab === 'mine') {
-            let query = _sb.from('confessions').select('*').order('created_at', {ascending: false});
-            if(currentUser) {
-                query = query.eq('user_id', currentUser.id);
-            } else {
-                query = query.eq('author_alias', myAlias);
-            }
-            const { data } = await query;
-            renderGrid(data);
+            let q = _sb.from('confessions').select('*').order('created_at', {ascending: false});
+            currentUser ? q.eq('user_id', currentUser.id) : q.eq('author_alias', myAlias);
+            const { data } = await q; renderGrid(data);
         } else {
-            if(!currentUser) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Conecta Google para ver guardados.</p>';
+            if(!currentUser) return grid.innerHTML = '<p style="padding:40px;">Usa Google para ver guardados.</p>';
             const { data } = await _sb.from('bookmarks').select('confessions(*)').eq('user_id', currentUser.id);
             renderGrid(data ? data.map(b => b.confessions) : []);
         }
@@ -297,10 +303,10 @@
 
     function renderGrid(posts) {
         const grid = document.getElementById('profile-grid');
-        if(!posts || posts.length === 0) return grid.innerHTML = '<p style="padding:40px; text-align:center;">Nada por aquí todavía.</p>';
+        if(!posts || posts.length === 0) return grid.innerHTML = '<p style="padding:40px;">Vacío.</p>';
         grid.innerHTML = posts.map(p => `
             <div class="grid-item" onclick="openFullPost('${p.text.replace(/'/g, "\\'")}')">
-                ${p.image_url ? `<img src="${p.image_url}" class="grid-img">` : `<div style="padding:10px; font-size:9px; color:#555; overflow:hidden;">${p.text}</div>`}
+                ${p.image_url ? `<img src="${p.image_url}" class="grid-img">` : `<div style="padding:5px; font-size:8px;">${p.text}</div>`}
             </div>
         `).join('');
     }
